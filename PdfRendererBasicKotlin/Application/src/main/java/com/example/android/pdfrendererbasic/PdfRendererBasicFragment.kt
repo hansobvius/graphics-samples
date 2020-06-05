@@ -17,41 +17,58 @@
 package com.example.android.pdfrendererbasic
 
 import android.os.Bundle
+import android.view.LayoutInflater
 import android.view.View
+import android.view.ViewGroup
 import android.widget.Button
 import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
+import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
 
-/**
- * This fragment has a big [ImageView] that shows PDF pages, and 2 [Button]s to move between pages.
- */
 class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) {
 
+    lateinit var binding: PdfRendererBasicFragmentBinding
+    private lateinit var pdfAdapter:PdfPagerAdapter
     private val viewModel: PdfRendererBasicViewModel by viewModels()
 
-    override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
-        // View references.
-        val image: ImageView = view.findViewById(R.id.image)
-        val buttonPrevious: Button = view.findViewById(R.id.previous)
-        val buttonNext: Button = view.findViewById(R.id.next)
+    override fun onCreateView(
+        inflater: LayoutInflater,
+        container: ViewGroup?,
+        savedInstanceState: Bundle?): View? {
+        binding = PdfRendererBasicFragmentBinding.inflate(inflater).also {
+            it.lifecycleOwner = this@PdfRendererBasicFragment
+        }
+        return binding.root
+    }
 
-        // Bind data.
+    override fun onStart() {
+        super.onStart()
+        this.apply {
+            this.initObservers()
+        }.also {
+            it.initListener()
+        }
+    }
+
+    private fun initListener(){
+        binding.previous.setOnClickListener { viewModel.showPrevious() }
+        binding.next.setOnClickListener { viewModel.showNext() }
+    }
+
+    private fun initObservers(){
         viewModel.pageInfo.observe(viewLifecycleOwner, Observer { (index, count) ->
             activity?.title = getString(R.string.app_name_with_index, index + 1, count)
         })
-        viewModel.pageBitmap.observe(viewLifecycleOwner, Observer { image.setImageBitmap(it) })
+        viewModel.pageBitmap.observe(viewLifecycleOwner, Observer {
+            binding.image.setImageBitmap(it)
+        })
         viewModel.previousEnabled.observe(viewLifecycleOwner, Observer {
-            buttonPrevious.isEnabled = it
+            binding.previous.isEnabled = it
         })
         viewModel.nextEnabled.observe(viewLifecycleOwner, Observer {
-            buttonNext.isEnabled = it
+            binding.next.isEnabled = it
         })
-
-        // Bind events.
-        buttonPrevious.setOnClickListener { viewModel.showPrevious() }
-        buttonNext.setOnClickListener { viewModel.showNext() }
     }
-
 }
