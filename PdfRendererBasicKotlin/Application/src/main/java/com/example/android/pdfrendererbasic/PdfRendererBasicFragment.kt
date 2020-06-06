@@ -30,7 +30,7 @@ import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragment
 class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) {
 
     lateinit var binding: PdfRendererBasicFragmentBinding
-    private lateinit var pdfAdapter:PdfPagerAdapter
+    private lateinit var pdfAdapter: PdfPagerAdapter
     private val viewModel: PdfRendererBasicViewModel by viewModels()
 
     override fun onCreateView(
@@ -41,6 +41,11 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
             it.lifecycleOwner = this@PdfRendererBasicFragment
         }
         return binding.root
+    }
+
+    override fun onActivityCreated(savedInstanceState: Bundle?) {
+        super.onActivityCreated(savedInstanceState)
+
     }
 
     override fun onStart() {
