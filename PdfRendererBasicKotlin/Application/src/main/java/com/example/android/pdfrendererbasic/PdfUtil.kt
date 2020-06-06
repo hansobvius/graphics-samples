@@ -13,6 +13,10 @@ object PdfUtil {
     fun renderPdfFile(file: File, position: Int): Bitmap?{
         var page: PdfRenderer.Page? = null
         var bitmap: Bitmap? = null
+        var renderer: PdfRenderer? = null
+        val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).also {
+            renderer = PdfRenderer(it)
+        }
         val pdfRenderer: PdfRenderer? = returnPdfRender(file)
         pdfRenderer?.let{
             page = pdfRenderer.openPage(position)

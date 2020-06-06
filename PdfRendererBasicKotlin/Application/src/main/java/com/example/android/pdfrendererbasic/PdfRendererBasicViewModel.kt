@@ -31,7 +31,7 @@ import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-class PdfRendererBasicViewModel @JvmOverloads constructor(
+class   PdfRendererBasicViewModel @JvmOverloads constructor(
         application: Application,
         useInstantExecutor: Boolean = false
 ) : AndroidViewModel(application) {
@@ -56,6 +56,9 @@ class PdfRendererBasicViewModel @JvmOverloads constructor(
     private val _pageBitmap = MutableLiveData<Bitmap>()
     val pageBitmap: LiveData<Bitmap>
         get() = _pageBitmap
+
+    private val _pageBitmapList = MutableLiveData<MutableList<Bitmap>>()
+    val pageBitmapList: LiveData<MutableList<Bitmap>> get() = _pageBitmapList
 
     private val _previousEnabled = MutableLiveData<Boolean>()
     val previousEnabled: LiveData<Boolean>

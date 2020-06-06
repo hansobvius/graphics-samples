@@ -26,6 +26,7 @@ import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
+import java.io.File
 
 class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) {
 
@@ -45,35 +46,52 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
 
     override fun onActivityCreated(savedInstanceState: Bundle?) {
         super.onActivityCreated(savedInstanceState)
-
     }
 
     override fun onStart() {
         super.onStart()
         this.apply {
-            this.initObservers()
-        }.also {
-            it.initListener()
+            this.initPagerView()
         }
     }
 
-    private fun initListener(){
-        binding.previous.setOnClickListener { viewModel.showPrevious() }
-        binding.next.setOnClickListener { viewModel.showNext() }
+//    private fun initListener(){
+//        binding.previous.setOnClickListener { viewModel.showPrevious() }
+//        binding.next.setOnClickListener { viewModel.showNext() }
+//    }
+
+//    private fun initObservers(){
+//        viewModel.pageInfo.observe(viewLifecycleOwner, Observer { (index, count) ->
+//            activity?.title = getString(R.string.app_name_with_index, index + 1, count)
+//        })
+//        viewModel.pageBitmap.observe(viewLifecycleOwner, Observer {
+//            binding.image.setImageBitmap(it)
+//        })
+//        viewModel.previousEnabled.observe(viewLifecycleOwner, Observer {
+//            binding.previous.isEnabled = it
+//        })
+//        viewModel.nextEnabled.observe(viewLifecycleOwner, Observer {
+//            binding.next.isEnabled = it
+//        })
+//    }
+
+    private fun initPagerView(){
+        pdfAdapter = PdfPagerAdapter(getFile())
+        binding.image.adapter = pdfAdapter
     }
 
-    private fun initObservers(){
-        viewModel.pageInfo.observe(viewLifecycleOwner, Observer { (index, count) ->
-            activity?.title = getString(R.string.app_name_with_index, index + 1, count)
-        })
-        viewModel.pageBitmap.observe(viewLifecycleOwner, Observer {
-            binding.image.setImageBitmap(it)
-        })
-        viewModel.previousEnabled.observe(viewLifecycleOwner, Observer {
-            binding.previous.isEnabled = it
-        })
-        viewModel.nextEnabled.observe(viewLifecycleOwner, Observer {
-            binding.next.isEnabled = it
-        })
+    private fun getFile(): File{
+        val file = File(requireActivity().application.cacheDir, FILENAME)
+        if (!file.exists()) {
+            requireActivity().application.assets.open(PdfRendererBasicViewModel.FILENAME).use { asset ->
+                file.writeBytes(asset.readBytes())
+            }
+        }
+        return file
+    }
+
+
+    companion object {
+        const val FILENAME = "sample.pdf"
     }
 }
