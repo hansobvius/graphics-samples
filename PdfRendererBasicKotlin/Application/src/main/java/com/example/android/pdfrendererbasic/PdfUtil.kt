@@ -11,12 +11,8 @@ import java.io.File
 object PdfUtil {
 
     fun renderPdfFile(file: File, position: Int): Bitmap?{
-        var page: PdfRenderer.Page? = null
+        var page: PdfRenderer.Page?
         var bitmap: Bitmap? = null
-        var renderer: PdfRenderer? = null
-        val fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).also {
-            renderer = PdfRenderer(it)
-        }
         val pdfRenderer: PdfRenderer? = returnPdfRender(file)
         pdfRenderer?.let{
             page = pdfRenderer.openPage(position)
@@ -28,5 +24,5 @@ object PdfUtil {
 
     fun pageCounter(file: File) = returnPdfRender(file).pageCount
 
-    private fun returnPdfRender(file: File) = PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY))
+    fun returnPdfRender(file: File) = PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY))
 }

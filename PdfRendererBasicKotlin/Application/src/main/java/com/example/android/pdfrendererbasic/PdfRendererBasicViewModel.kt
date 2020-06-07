@@ -31,7 +31,7 @@ import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-class   PdfRendererBasicViewModel @JvmOverloads constructor(
+class PdfRendererBasicViewModel @JvmOverloads constructor(
         application: Application,
         useInstantExecutor: Boolean = false
 ) : AndroidViewModel(application) {

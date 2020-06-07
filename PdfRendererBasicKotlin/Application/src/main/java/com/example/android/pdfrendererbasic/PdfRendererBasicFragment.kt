@@ -16,7 +16,10 @@
 
 package com.example.android.pdfrendererbasic
 
+import android.graphics.Bitmap
+import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
+import android.os.ParcelFileDescriptor
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -25,14 +28,33 @@ import android.widget.ImageView
 import androidx.fragment.app.Fragment
 import androidx.fragment.app.viewModels
 import androidx.lifecycle.Observer
+import androidx.viewpager.widget.PagerAdapter
+import androidx.viewpager.widget.ViewPager
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.asCoroutineDispatcher
 import java.io.File
+import java.util.concurrent.Executor
+import java.util.concurrent.Executors
 
 class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) {
 
     lateinit var binding: PdfRendererBasicFragmentBinding
     private lateinit var pdfAdapter: PdfPagerAdapter
     private val viewModel: PdfRendererBasicViewModel by viewModels()
+
+    private lateinit var pdfRenderer: PdfRenderer
+    private lateinit var parcelFileDescriptor: ParcelFileDescriptor
+    private lateinit var file: File
+    private val useInstantExecutor = true
+    private val job = Job()
+    private val executor = if (useInstantExecutor) {
+        Executor { it.run() }
+    } else {
+        Executors.newSingleThreadExecutor()
+    }
+    private val scope = CoroutineScope(executor.asCoroutineDispatcher() + job)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -55,29 +77,8 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
         }
     }
 
-//    private fun initListener(){
-//        binding.previous.setOnClickListener { viewModel.showPrevious() }
-//        binding.next.setOnClickListener { viewModel.showNext() }
-//    }
-
-//    private fun initObservers(){
-//        viewModel.pageInfo.observe(viewLifecycleOwner, Observer { (index, count) ->
-//            activity?.title = getString(R.string.app_name_with_index, index + 1, count)
-//        })
-//        viewModel.pageBitmap.observe(viewLifecycleOwner, Observer {
-//            binding.image.setImageBitmap(it)
-//        })
-//        viewModel.previousEnabled.observe(viewLifecycleOwner, Observer {
-//            binding.previous.isEnabled = it
-//        })
-//        viewModel.nextEnabled.observe(viewLifecycleOwner, Observer {
-//            binding.next.isEnabled = it
-//        })
-//    }
-
     private fun initPagerView(){
-        pdfAdapter = PdfPagerAdapter(getFile())
-        binding.image.adapter = pdfAdapter
+        renderContent()
     }
 
     private fun getFile(): File{
@@ -88,6 +89,34 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
             }
         }
         return file
+    }
+
+    private fun loadPdf(){
+        file = getFile()
+        parcelFileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+        pdfRenderer = PdfRenderer(parcelFileDescriptor)
+    }
+
+    private fun renderContent(){
+        loadPdf().also {
+            pdfAdapter = PdfPagerAdapter(renderPdf(pdfRenderer.pageCount))
+            binding.viewPager.adapter = pdfAdapter
+        }
+    }
+
+    private fun renderPdf(count: Int): List<Bitmap> {
+        val list = ArrayList<Bitmap>()
+        for (i in 0 until count) {
+            list.add(renderPage(pdfRenderer.openPage(i)))
+        }
+        return list
+    }
+
+    private fun renderPage(page: PdfRenderer.Page): Bitmap {
+        val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        page.close()
+        return bitmap
     }
 
 

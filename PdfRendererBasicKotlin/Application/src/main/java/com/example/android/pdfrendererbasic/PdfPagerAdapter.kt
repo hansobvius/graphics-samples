@@ -5,26 +5,30 @@ import android.graphics.pdf.PdfRenderer
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import androidx.databinding.DataBindingUtil
 import androidx.databinding.ViewDataBinding
 import androidx.viewpager.widget.PagerAdapter
-import com.example.android.pdfrendererbasic.databinding.ContentAdapterBinding
 import java.io.File
 
-class PdfPagerAdapter(val file: File): PagerAdapter() {
+class PdfPagerAdapter(val bitmap: List<Bitmap>): PagerAdapter() {
 
-    lateinit var binding: ContentAdapterBinding
 
-    override fun instantiateItem(container: ViewGroup, position: Int): ViewDataBinding {
-//        binding = LayoutInflater.from(container.context).inflate(R.layout.content_adapter, container) as ContentAdapterBinding
+    override fun instantiateItem(container: ViewGroup, position: Int): View {
         val inflater = LayoutInflater.from(container.context)
-        binding = ContentAdapterBinding.inflate(inflater)
-        binding.pdfContent.setImageBitmap(PdfUtil.renderPdfFile(file, position))
-        return binding
+        val view: View = inflater.inflate(R.layout.content_adapter, container, false)
+        val image = view.findViewById<ImageView>(R.id.pdf_content)
+        image.setImageBitmap(bitmap[position])
+        container.addView(view)
+        return view
     }
 
     override fun isViewFromObject(view: View, `object`: Any): Boolean = view == `object`
 
-    override fun getCount(): Int = PdfUtil.pageCounter(file)
+    override fun getCount(): Int = bitmap.size
+
+    override fun destroyItem(container: ViewGroup, position: Int, `object`: Any) {
+        container.removeView(`object` as View)
+    }
 
 }
