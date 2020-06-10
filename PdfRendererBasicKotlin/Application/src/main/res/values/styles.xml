@@ -15,7 +15,7 @@
  limitations under the License.
 -->
 <resources>
-    <style name="Theme.PdfRendererBasic" parent="Theme.AppCompat.Light.DarkActionBar">
+    <style name="Theme.PdfRendererBasic" parent="Theme.AppCompat.Light.NoActionBar">
         <item name="colorPrimary">#F44336</item>
         <item name="colorPrimaryDark">#D32F2F</item>
         <item name="colorAccent">#00BCD4</item>

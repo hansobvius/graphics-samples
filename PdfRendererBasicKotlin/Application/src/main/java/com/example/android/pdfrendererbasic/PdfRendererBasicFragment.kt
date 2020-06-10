@@ -61,6 +61,22 @@ class PdfRendererBasicFragment : Fragment() {
         binding = PdfRendererBasicFragmentBinding.inflate(inflater).also {
             it.lifecycleOwner = this@PdfRendererBasicFragment
         }
+        binding.mainToolbar.apply{
+            this.inflateMenu(R.menu.main)
+            setBackgroundColor(
+                this@PdfRendererBasicFragment
+                    .requireActivity()
+                    .resources
+                    .getColor(R.color.toolbar_color)
+            )
+            title = "Pdf Renderer"
+            setTitleTextColor(
+                this@PdfRendererBasicFragment
+                    .requireActivity()
+                    .resources
+                    .getColor(R.color.toolbar_text_color)
+            )
+        }
         return binding.root
     }
 
