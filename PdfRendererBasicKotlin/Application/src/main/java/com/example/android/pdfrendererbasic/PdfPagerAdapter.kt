@@ -13,7 +13,6 @@ import java.io.File
 
 class PdfPagerAdapter(val bitmap: List<Bitmap>): PagerAdapter() {
 
-
     override fun instantiateItem(container: ViewGroup, position: Int): View {
         val inflater = LayoutInflater.from(container.context)
         val view: View = inflater.inflate(R.layout.content_adapter, container, false)

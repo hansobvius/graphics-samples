@@ -38,12 +38,10 @@ import java.io.File
 import java.util.concurrent.Executor
 import java.util.concurrent.Executors
 
-class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) {
+class PdfRendererBasicFragment : Fragment() {
 
     lateinit var binding: PdfRendererBasicFragmentBinding
-    private lateinit var pdfAdapter: PdfPagerAdapter
-    private val viewModel: PdfRendererBasicViewModel by viewModels()
-
+    private lateinit var pdfRecyclerView: PdfRecyclerView
     private lateinit var pdfRenderer: PdfRenderer
     private lateinit var parcelFileDescriptor: ParcelFileDescriptor
     private lateinit var file: File
@@ -64,10 +62,6 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
             it.lifecycleOwner = this@PdfRendererBasicFragment
         }
         return binding.root
-    }
-
-    override fun onActivityCreated(savedInstanceState: Bundle?) {
-        super.onActivityCreated(savedInstanceState)
     }
 
     override fun onStart() {
@@ -99,16 +93,16 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
 
     private fun renderContent(){
         loadPdf().also {
-            pdfAdapter = PdfPagerAdapter(renderPdf(pdfRenderer.pageCount))
-            binding.viewPager.adapter = pdfAdapter
+            pdfRecyclerView = PdfRecyclerView(renderPdf(pdfRenderer.pageCount))
+            binding.viewPager.apply{
+                adapter = pdfRecyclerView
+            }
         }
     }
 
     private fun renderPdf(count: Int): List<Bitmap> {
         val list = ArrayList<Bitmap>()
-        for (i in 0 until count) {
-            list.add(renderPage(pdfRenderer.openPage(i)))
-        }
+        for (i in 0 until count) list.add(renderPage(pdfRenderer.openPage(i)))
         return list
     }
 
@@ -118,7 +112,6 @@ class PdfRendererBasicFragment : Fragment(R.layout.pdf_renderer_basic_fragment) 
         page.close()
         return bitmap
     }
-
 
     companion object {
         const val FILENAME = "sample.pdf"
