@@ -78,7 +78,6 @@ class PdfRendererBasicFragment : Fragment() {
             this.initPagerView()
         }
         this.initCLickListener()
-        this.toolbarAnimation()
     }
 
     private fun buildToolbar(){
@@ -119,15 +118,6 @@ class PdfRendererBasicFragment : Fragment() {
         }
     }
 
-    private fun toolbarAnimation(){
-        val toolbarAnimation = getObjectAnimator()
-        toolbarAnimation.apply {
-            interpolator = AccelerateDecelerateInterpolator()
-            duration = 1000
-            expandLayout()
-        }
-    }
-
     private fun initPagerView(){
         renderContent()
     }
@@ -135,7 +125,7 @@ class PdfRendererBasicFragment : Fragment() {
     private fun getFile(): File{
         val file = File(requireActivity().application.cacheDir, FILENAME)
         if (!file.exists()) {
-            requireActivity().application.assets.open(PdfRendererBasicViewModel.FILENAME).use { asset ->
+            requireActivity().application.assets.open(FILENAME).use { asset ->
                 file.writeBytes(asset.readBytes())
             }
         }
@@ -168,30 +158,6 @@ class PdfRendererBasicFragment : Fragment() {
         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
         page.close()
         return bitmap
-    }
-
-    /**
-     * EXPAND TOOLBAR
-     */
-    private fun getObjectAnimator(): ObjectAnimator =
-        if(isExpandable){
-            ObjectAnimator.ofFloat(
-                binding.root.main_toolbar,
-                View.TRANSLATION_Y,
-                0f,
-                - binding.root.height.toFloat()
-            )
-        }else{
-            ObjectAnimator.ofFloat(
-                binding.root.main_toolbar,
-                View.TRANSLATION_Y,
-                - binding.root.height.toFloat(),
-                0f
-            )
-        }
-
-    private fun ObjectAnimator.expandLayout(){
-        start()
     }
 
     companion object {
