@@ -16,27 +16,18 @@
 
 package com.example.android.pdfrendererbasic
 
-import android.animation.ObjectAnimator
-import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
 import android.util.Log
 import android.view.*
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.Button
-import android.widget.ImageView
+import android.view.ScaleGestureDetector.OnScaleGestureListener
+import android.widget.Toolbar
 import androidx.appcompat.app.AlertDialog
-import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
-import androidx.viewpager.widget.PagerAdapter
-import androidx.viewpager.widget.ViewPager
-import com.example.android.pdfrendererbasic.MainActivity.Companion.FRAGMENT_INFO
+import androidx.recyclerview.widget.RecyclerView
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
-import kotlinx.android.synthetic.main.pdf_renderer_basic_fragment.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -61,13 +52,13 @@ class PdfRendererBasicFragment : Fragment() {
     }
     private val scope = CoroutineScope(executor.asCoroutineDispatcher() + job)
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?): View? {
+    private lateinit var scaleListener: ScaleGestureDetector.OnScaleGestureListener
+
+    override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
         binding = PdfRendererBasicFragmentBinding.inflate(inflater).also {
             it.lifecycleOwner = this@PdfRendererBasicFragment
         }
+
         this.buildToolbar()
         return binding.root
     }
@@ -77,8 +68,8 @@ class PdfRendererBasicFragment : Fragment() {
         this.apply {
             this.initPagerView()
         }
-        this.initCLickListener()
     }
+
 
     private fun buildToolbar(){
         binding.mainToolbar.apply{
@@ -111,13 +102,6 @@ class PdfRendererBasicFragment : Fragment() {
         }
     }
 
-    private fun initCLickListener(){
-        binding.root.setOnClickListener {
-            Log.i("TEST", "listener clicked")
-            isExpandable = !isExpandable
-        }
-    }
-
     private fun initPagerView(){
         renderContent()
     }
@@ -141,7 +125,7 @@ class PdfRendererBasicFragment : Fragment() {
     private fun renderContent(){
         loadPdf().also {
             pdfRecyclerView = PdfRecyclerView(renderPdf(pdfRenderer.pageCount))
-            binding.viewPager.apply{
+            binding.viewPager.apply {
                 adapter = pdfRecyclerView
             }
         }
@@ -158,6 +142,28 @@ class PdfRendererBasicFragment : Fragment() {
         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
         page.close()
         return bitmap
+    }
+
+    private fun gestureListener(view: View){
+        scaleListener = object : ScaleGestureDetector.OnScaleGestureListener{
+            override fun onScaleBegin(detector: ScaleGestureDetector?): Boolean {
+                Log.i("TEST", "detectorScale onScaleBegin")
+                return true
+            }
+
+            override fun onScaleEnd(detector: ScaleGestureDetector?) {
+                Log.i("TEST", "detectorScale onScaleEnd")
+            }
+
+            override fun onScale(detector: ScaleGestureDetector): Boolean{
+                Log.i("TEST", "detectorScale onScale")
+                return true
+            }
+        }
+    }
+
+    private fun Toolbar.onMenuItem(){
+
     }
 
     companion object {
