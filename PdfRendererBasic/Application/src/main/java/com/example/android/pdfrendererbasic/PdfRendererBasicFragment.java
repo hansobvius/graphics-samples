@@ -16,8 +16,15 @@
 
 package com.example.android.pdfrendererbasic;
 
+import android.annotation.SuppressLint;
 import android.app.Activity;
+import android.graphics.Bitmap;
+import android.graphics.pdf.PdfRenderer;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.ParcelFileDescriptor;
+import android.util.Log;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
@@ -25,9 +32,21 @@ import android.widget.Button;
 import android.widget.ImageView;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
+import androidx.annotation.RequiresApi;
 import androidx.fragment.app.Fragment;
 import androidx.lifecycle.LifecycleOwner;
 import androidx.lifecycle.ViewModelProvider;
+import androidx.viewpager.widget.ViewPager;
+
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Objects;
 
 /**
  * This fragment has a big {@link ImageView} that shows PDF pages, and 2
@@ -35,56 +54,154 @@ import androidx.lifecycle.ViewModelProvider;
  */
 public class PdfRendererBasicFragment extends Fragment {
 
-    private PdfRendererBasicViewModel mViewModel;
+    public PdfPagerAdapter mPdfPageAdapter;
+    public PdfRenderer mPdfRenderer;
+    public ParcelFileDescriptor mParcelFileDescriptor;
+    public File mFile;
+    public ViewPager mViewPager;
 
-    private final View.OnClickListener mOnClickListener = (view) -> {
-        switch (view.getId()) {
-            case R.id.previous:
-                if (mViewModel != null) {
-                    mViewModel.showPrevious();
-                }
-                break;
-            case R.id.next:
-                if (mViewModel != null) {
-                    mViewModel.showNext();
-                }
-                break;
+    public static final String FILENAME = "sample.pdf";
+
+    public static PdfRendererBasicFragment newInstance(){
+        PdfRendererBasicFragment fragment = new PdfRendererBasicFragment();
+        return fragment;
+    }
+
+    @Nullable
+    @Override
+    public View onCreateView(LayoutInflater inflater, @Nullable ViewGroup container, @Nullable Bundle savedInstanceState) {
+        Log.i("TEST", "PdfFragment onCreateView called");
+        View view = inflater.inflate(
+                R.layout.pdf_renderer_basic_fragment, container, false);
+        mViewPager = view.findViewById(R.id.pdf_view_pager);
+        try {
+            loadPdf();
+        } catch (IOException e) {
+            e.printStackTrace();
         }
-    };
-
-    @Override
-    public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container,
-                             Bundle savedInstanceState) {
-        return inflater.inflate(R.layout.pdf_renderer_basic_fragment, container, false);
+        return view;
     }
 
     @Override
-    public void onViewCreated(@NonNull View view, Bundle savedInstanceState) {
-        // View references.
-        final ImageView image = view.findViewById(R.id.image);
-        final Button buttonPrevious = view.findViewById(R.id.previous);
-        final Button buttonNext = view.findViewById(R.id.next);
-
-        // Bind data.
-        mViewModel = new ViewModelProvider(this).get(PdfRendererBasicViewModel.class);
-        final LifecycleOwner viewLifecycleOwner = getViewLifecycleOwner();
-        mViewModel.getPageInfo().observe(viewLifecycleOwner, pageInfo -> {
-            if (pageInfo == null) {
-                return;
-            }
-            final Activity activity = getActivity();
-            if (activity != null) {
-                activity.setTitle(getString(R.string.app_name_with_index,
-                        pageInfo.index + 1, pageInfo.count));
-            }
-        });
-        mViewModel.getPageBitmap().observe(viewLifecycleOwner, image::setImageBitmap);
-        mViewModel.getPreviousEnabled().observe(viewLifecycleOwner, buttonPrevious::setEnabled);
-        mViewModel.getNextEnabled().observe(viewLifecycleOwner, buttonNext::setEnabled);
-
-        // Bind events.
-        buttonPrevious.setOnClickListener(mOnClickListener);
-        buttonNext.setOnClickListener(mOnClickListener);
+    public void onResume(){
+        super.onResume();
+        renderContent();
+//        new FileAsyncTask().execute();
     }
 
+    private void initPagerView(){
+//        try {
+//            loadPdf();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }finally {
+//
+//        }
+    }
+
+    private void renderContent(){
+//        try {
+//            loadPdf();
+//        } catch (IOException e) {
+//            e.printStackTrace();
+//        }finally {
+//            mPdfPageAdapter = new PdfPagerAdapter(renderPdf(mPdfRenderer.getPageCount()));
+//            mViewPager.setAdapter(mPdfPageAdapter);
+//        }
+        mPdfPageAdapter = new PdfPagerAdapter(renderPdf(mPdfRenderer.getPageCount()));
+        mViewPager.setAdapter(mPdfPageAdapter);
+    }
+
+    private void loadPdf() throws IOException {
+        mFile = getFile();
+        try {
+            mParcelFileDescriptor = ParcelFileDescriptor.open(mFile, ParcelFileDescriptor.MODE_READ_ONLY);
+        } catch (FileNotFoundException e) {
+            Log.i("TEST", "PdfFragment FileNotFoundException");
+            e.printStackTrace();
+        }finally{
+            mPdfRenderer = new PdfRenderer(mParcelFileDescriptor);
+        }
+
+    }
+
+    private File getFile(){
+        File file = new File(Objects.requireNonNull(this.getActivity()).getApplication().getCacheDir(), FILENAME);
+        if(!file.exists()){
+            try {
+                final InputStream asset = this.getActivity().getApplication().getAssets().open(FILENAME);
+                final FileOutputStream outputStream = new FileOutputStream(file);
+                final byte[] buffer = new byte[1024];
+                int size;
+                while((size = asset.read(buffer)) != -1){
+                    outputStream.write(buffer, 0, size);
+                }
+                asset.close();
+                outputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+        }
+        return file;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private List<Bitmap> renderPdf(int countList){
+        List<Bitmap> list = new ArrayList<Bitmap>();
+        for(int c = 0; c < countList; c++){
+            list.add(renderPage(mPdfRenderer.openPage(c)));
+        }
+        return list;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+    private Bitmap renderPage(PdfRenderer.Page page){
+        Bitmap bitmap = Bitmap.createBitmap(page.getWidth(), page.getHeight(), Bitmap.Config.ARGB_8888);
+        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY);
+        page.close();
+        return bitmap;
+    }
+
+//    private List<Bitmap> renderAsyncPdf(PdfRenderer pdfRenderer){
+//        List<Bitmap> list = new ArrayList<Bitmap>();
+//        int pageCounter = pdfRenderer.getPageCount();
+//        for(int c = 0; c < pageCounter; c++){
+//            list.add(renderPage(pdfRenderer.openPage(c)));
+//        }
+//        return list;
+//    }
+
+//    @RequiresApi(api = Build.VERSION_CODES.LOLLIPOP)
+//    @SuppressLint("StaticFieldLeak")
+//    class FileAsyncTask extends AsyncTask<Void, Void, PdfRenderer> {
+//
+//        PdfPagerAdapter mPdfPageAdapter;
+//        PdfRenderer mPdfRenderer;
+//        ParcelFileDescriptor mParcelFileDescriptor;
+//        File mFile;
+//
+//        @Override
+//        protected PdfRenderer doInBackground(Void... voids) {
+//            this.mFile = getFile();
+//            try {
+//                this.mParcelFileDescriptor = ParcelFileDescriptor.open(mFile, ParcelFileDescriptor.MODE_READ_ONLY);
+//            } catch (FileNotFoundException e) {
+//                Log.i("TEST", "PdfFragment FileNotFoundException");
+//                e.printStackTrace();
+//            }
+//            try {
+//                this.mPdfRenderer = new PdfRenderer(mParcelFileDescriptor);
+//            } catch (IOException e) {
+//                e.printStackTrace();
+//            }
+//            return this.mPdfRenderer;
+//        }
+//
+//        @Override
+//        protected void onPostExecute(PdfRenderer pdfRenderer) {
+//            super.onPostExecute(pdfRenderer);
+//            this.mPdfPageAdapter = new PdfPagerAdapter(renderAsyncPdf(pdfRenderer));
+//            mViewPager.setAdapter(this.mPdfPageAdapter);
+//        }
+//    }
 }
