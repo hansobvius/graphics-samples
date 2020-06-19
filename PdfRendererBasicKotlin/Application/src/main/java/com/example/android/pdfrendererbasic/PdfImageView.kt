@@ -164,10 +164,6 @@ class PdfImageView@JvmOverloads constructor(
         super.onDraw(canvas)
     }
 
-    public override fun onConfigurationChanged(newConfig: Configuration) {
-        super.onConfigurationChanged(newConfig)
-        savePreviousImageValues()
-    }
     fun setMaxZoomRatio(max: Float) {
         maxScaleMultiplier = max
         maxScale = minScale * maxScaleMultiplier
@@ -189,7 +185,7 @@ class PdfImageView@JvmOverloads constructor(
                         val heightRatio = viewHeight.toFloat() / drawableHeight
                         minScale = if (touchScaleType == ScaleType.CENTER) {
                             Math.min(widthRatio, heightRatio)
-                        } else {  // CENTER_CROP
+                        } else {
                             Math.min(widthRatio, heightRatio) / Math.max(widthRatio, heightRatio)
                         }
                     }
@@ -247,18 +243,14 @@ class PdfImageView@JvmOverloads constructor(
             return point
         }
 
-    private fun orientationMismatch(drawable: Drawable?): Boolean {
-        return viewWidth > viewHeight != drawable!!.intrinsicWidth > drawable.intrinsicHeight
-    }
-
     private fun getDrawableWidth(drawable: Drawable?): Int {
-        return if (orientationMismatch(drawable) && isRotateImageToFitScreen) {
+        return if (isRotateImageToFitScreen) {
             drawable!!.intrinsicHeight
         } else drawable!!.intrinsicWidth
     }
 
     private fun getDrawableHeight(drawable: Drawable?): Int {
-        return if (orientationMismatch(drawable) && isRotateImageToFitScreen) {
+        return if (isRotateImageToFitScreen) {
             drawable!!.intrinsicWidth
         } else drawable!!.intrinsicHeight
     }
@@ -268,7 +260,7 @@ class PdfImageView@JvmOverloads constructor(
         val transX = floatMatrix!![Matrix.MTRANS_X]
         val transY = floatMatrix!![Matrix.MTRANS_Y]
         var offset = 0f
-        if (isRotateImageToFitScreen && orientationMismatch(drawable)) {
+        if (isRotateImageToFitScreen) {
             offset = imageWidth
         }
         val fixTransX = getFixTrans(transX, viewWidth.toFloat(), imageWidth, offset)
@@ -281,7 +273,7 @@ class PdfImageView@JvmOverloads constructor(
         touchMatrix!!.getValues(floatMatrix)
         if (imageWidth < viewWidth) {
             var xOffset = (viewWidth - imageWidth) / 2
-            if (isRotateImageToFitScreen && orientationMismatch(drawable)) {
+            if (isRotateImageToFitScreen) {
                 xOffset += imageWidth
             }
             floatMatrix!![Matrix.MTRANS_X] = xOffset
@@ -403,7 +395,7 @@ class PdfImageView@JvmOverloads constructor(
         matchViewHeight = viewHeight - redundantYSpace
         if (!isZoomed && !imageRenderedAtLeastOnce) {
 
-            if (isRotateImageToFitScreen && orientationMismatch(drawable)) {
+            if (isRotateImageToFitScreen) {
                 touchMatrix!!.setRotate(90f)
                 touchMatrix!!.postTranslate(drawableWidth.toFloat(), 0f)
                 touchMatrix!!.postScale(scaleX, scaleY)
@@ -462,7 +454,7 @@ class PdfImageView@JvmOverloads constructor(
             -((imageSize - viewSize) * 0.5f)
         } else {
 
-            var fixedPixelPositionInView = 0.5f // CENTER
+            var fixedPixelPositionInView = 0.5f
             if (sizeChangeFixedPixel == FixedPixel.BOTTOM_RIGHT) {
                 fixedPixelPositionInView = 1.0f
             } else if (sizeChangeFixedPixel == FixedPixel.TOP_LEFT) {
@@ -655,7 +647,7 @@ class PdfImageView@JvmOverloads constructor(
             val maxX: Int
             val minY: Int
             val maxY: Int
-            if (isRotateImageToFitScreen && orientationMismatch(drawable)) {
+            if (isRotateImageToFitScreen) {
                 startX -= imageWidth.toInt()
             }
             if (imageWidth > viewWidth) {
