@@ -18,16 +18,10 @@ class PdfImageView@JvmOverloads constructor(
     defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
 
     var currentZoom = 0f
-        private set
-
     private var touchMatrix: Matrix? = null
     private var prevMatrix: Matrix? = null
     var isZoomEnabled = false
     private var isRotateImageToFitScreen = false
-
-    private enum class TypeGesture {
-        NONE, DRAG, ZOOM, FLING
-    }
 
     private var typeGesture: TypeGesture? = null
     private var userSpecifiedMinScale = 0f
@@ -58,16 +52,13 @@ class PdfImageView@JvmOverloads constructor(
     private var touchImageViewListener: OnTouchImageViewListener? = null
 
     init {
-        super.setClickable(true)
         mScaleDetector = ScaleGestureDetector(context, ScaleListener())
         mGestureDetector = GestureDetector(context, GestureListener())
         touchMatrix = Matrix()
         prevMatrix = Matrix()
         floatMatrix = FloatArray(9)
         currentZoom = 1f
-        if (touchScaleType == null) {
-            touchScaleType = ScaleType.FIT_CENTER
-        }
+        touchScaleType = ScaleType.FIT_CENTER
         minScale = 1f
         maxScale = 3f
         superMinScale = SUPER_MIN_MULTIPLIER * minScale
@@ -79,9 +70,7 @@ class PdfImageView@JvmOverloads constructor(
         super.setOnTouchListener(PrivateOnTouchListener())
         val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.TouchImageView, defStyle, 0)
         try {
-            if (!isInEditMode) {
-                isZoomEnabled = attributes.getBoolean(R.styleable.TouchImageView_zoom_enabled, true)
-            }
+            if (!isInEditMode) isZoomEnabled = attributes.getBoolean(R.styleable.TouchImageView_zoom_enabled, true)
         } finally {
             attributes.recycle()
         }
@@ -525,7 +514,12 @@ class PdfImageView@JvmOverloads constructor(
         return PointF(finalX, finalY)
     }
 
-    private inner class Fling internal constructor(velocityX: Int, velocityY: Int) : Runnable {
+
+    private fun compatPostOnAnimation(runnable: Runnable) {
+        postOnAnimation(runnable)
+    }
+
+    inner class Fling internal constructor(velocityX: Int, velocityY: Int) : Runnable {
         var scroller: CompatScroller?
         var currX: Int
         var currY: Int
@@ -590,8 +584,14 @@ class PdfImageView@JvmOverloads constructor(
         }
     }
 
-    private inner class CompatScroller internal constructor(context: Context?) {
+    inner class CompatScroller internal constructor(context: Context?) {
+
         var overScroller: OverScroller
+
+        init {
+            overScroller = OverScroller(context)
+        }
+
         fun fling(startX: Int, startY: Int, velocityX: Int, velocityY: Int, minX: Int, maxX: Int, minY: Int, maxY: Int) {
             overScroller.fling(startX, startY, velocityX, velocityY, minX, maxX, minY, maxY)
         }
@@ -613,19 +613,17 @@ class PdfImageView@JvmOverloads constructor(
 
         val currY: Int
             get() = overScroller.currY
-
-        init {
-            overScroller = OverScroller(context)
-        }
     }
 
-    private fun compatPostOnAnimation(runnable: Runnable) {
-        postOnAnimation(runnable)
-    }
 
     companion object {
-        private const val SUPER_MIN_MULTIPLIER = .75f
-        private const val SUPER_MAX_MULTIPLIER = 1.25f
+        const val SUPER_MIN_MULTIPLIER = .75f
+        const val SUPER_MAX_MULTIPLIER = 1.25f
         const val AUTOMATIC_MIN_ZOOM = -1.0f
     }
+
+    enum class TypeGesture {
+        NONE, DRAG, ZOOM, FLING
+    }
 }
+
