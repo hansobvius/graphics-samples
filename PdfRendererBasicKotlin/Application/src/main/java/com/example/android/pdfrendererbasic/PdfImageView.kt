@@ -534,11 +534,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         this.state = state
     }
 
-    @Deprecated("")
-    fun canScrollHorizontallyFroyo(direction: Int): Boolean {
-        return canScrollHorizontally(direction)
-    }
-
     override fun canScrollHorizontally(direction: Int): Boolean {
         touchMatrix!!.getValues(floatMatrix)
         val x = floatMatrix!![Matrix.MTRANS_X]
@@ -559,25 +554,12 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         } else Math.abs(y) + viewHeight + 1 < imageHeight || direction <= 0
     }
 
-    // TODO - apagar
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
-        override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-            return doubleTapListener?.onSingleTapConfirmed(e) ?: performClick()
-        }
-
-        override fun onLongPress(e: MotionEvent?) {
-            performLongClick()
-        }
-
         override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
             fling?.cancelFling()
             fling = Fling(velocityX.toInt(), velocityY.toInt())
                 .also { compatPostOnAnimation(it) }
             return super.onFling(e1, e2, velocityX, velocityY)
-        }
-
-        override fun onDoubleTapEvent(e: MotionEvent?): Boolean {
-            return doubleTapListener?.onDoubleTapEvent(e) ?: false
         }
     }
 
