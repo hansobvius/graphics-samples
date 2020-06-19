@@ -20,19 +20,10 @@ import android.widget.OverScroller
 import androidx.appcompat.widget.AppCompatImageView
 
 class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
-    /**
-     * Get the current zoom. This is the zoom relative to the initial
-     * scale, not the original resource.
-     *
-     * @return current zoom multiplier.
-     */
-    // Scale of image ranges from minScale to maxScale, where minScale == 1
-    // when the image is stretched to fit view.
+
     var currentZoom = 0f
         private set
 
-    // Matrix applied to image. MSCALE_X and MSCALE_Y should always be equal.
-    // MTRANS_X and MTRANS_Y are the other values used. prevMatrix is the matrix saved prior to the screen rotating.
     private var touchMatrix: Matrix? = null
     private var prevMatrix: Matrix? = null
     var isZoomEnabled = false
@@ -47,7 +38,7 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     private var orientationJustChanged = false
 
     private enum class State {
-        NONE, DRAG, ZOOM, FLING, ANIMATE_ZOOM
+        NONE, DRAG, ZOOM, FLING
     }
 
     private var state: State? = null
@@ -59,30 +50,18 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     private var superMinScale = 0f
     private var superMaxScale = 0f
     private var floatMatrix: FloatArray? = null
-    /**
-     * Get zoom multiplier for double tap
-     *
-     * @return double tap zoom multiplier.
-     */
-    /**
-     * Set custom zoom multiplier for double tap.
-     * By default maxScale will be used as value for double tap zoom multiplier.
-     *
-     */
-    var doubleTapScale = 0f
+
     private var fling: Fling? = null
     private var orientation = 0
     private var touchScaleType: ScaleType? = null
     private var imageRenderedAtLeastOnce = false
     private var onDrawReady = false
 
-    // Size of view and previous view size (ie before rotation)
     private var viewWidth = 0
     private var viewHeight = 0
     private var prevViewWidth = 0
     private var prevViewHeight = 0
 
-    // Size of image when it is stretched to fit view. Before and After rotation.
     private var matchViewWidth = 0f
     private var matchViewHeight = 0f
     private var prevMatchViewWidth = 0f
@@ -120,7 +99,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
                 isZoomEnabled = attributes.getBoolean(R.styleable.TouchImageView_zoom_enabled, true)
             }
         } finally {
-            // release the TypedArray so that it can be reused.
             attributes.recycle()
         }
     }
@@ -163,10 +141,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         } else {
             touchScaleType = type
             if (onDrawReady) {
-                //
-                // If the image is already rendered, scaleType has been called programmatically
-                // and the TouchImageView should be updated with the new scaleType.
-                //
                 setZoom(this)
             }
         }
@@ -176,18 +150,9 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         return touchScaleType!!
     }
 
-    /**
-     * Returns false if image is in initial, unzoomed state. False, otherwise.
-     *
-     * @return true if image is zoomed
-     */
     val isZoomed: Boolean
         get() = currentZoom != 1f
 
-    /**
-     * Save the current matrix and view dimensions
-     * in the prevMatrix and prevView variables.
-     */
     fun savePreviousImageValues() {
         if (touchMatrix != null && viewHeight != 0 && viewWidth != 0) {
             touchMatrix!!.getValues(floatMatrix)
@@ -254,13 +219,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
         savePreviousImageValues()
     }
-
-    /**
-     * Set the max zoom multiplier as a multiple of minZoom, whatever minZoom may change to. By
-     * default, this is not done, and maxZoom has a fixed value of 3.
-     *
-     * @param max max zoom multiplier, as a multiple of minZoom
-     */
     fun setMaxZoomRatio(max: Float) {
         maxScaleMultiplier = max
         maxScale = minScale * maxScaleMultiplier
@@ -268,15 +226,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         maxScaleIsSetByMultiplier = true
     }
 
-    /**
-     * Get the min zoom multiplier.
-     *
-     * @return min zoom multiplier.
-     */// CENTER_CROP
-    /**
-     * Set the min zoom multiplier. Default value: 1.
-     *
-     */
     var minZoom: Float
         get() = minScale
         set(min) {
@@ -307,26 +256,12 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             superMinScale = SUPER_MIN_MULTIPLIER * minScale
         }
 
-    /**
-     * Reset zoom and translation to initial state.
-     */
     fun resetZoom() {
         currentZoom = 1f
         fitImageToView()
     }
 
-    /**
-     * Set zoom to the specified scale. Image will be centered around the point
-     * (focusX, focusY). These floats range from 0 to 1 and denote the focus point
-     * as a fraction from the left and top of the view. For example, the top left
-     * corner of the image would be (0, 0). And the bottom right corner would be (1, 1).
-     */
     fun setZoom(scale: Float, focusX: Float, focusY: Float, scaleType: ScaleType?) {
-        //
-        // setZoom can be called before the image is on the screen, but at this point,
-        // image and view sizes have not yet been calculated in onMeasure. Thus, we should
-        // delay calling setZoom until the view has been measured.
-        //
         if (userSpecifiedMinScale == AUTOMATIC_MIN_ZOOM) {
             minZoom = AUTOMATIC_MIN_ZOOM
             if (currentZoom < minScale) {
@@ -348,23 +283,11 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     }
 
     //TODO - maintain scale type
-    /**
-     * Set zoom parameters equal to another TouchImageView. Including scale, position,
-     * and ScaleType.
-     */
     fun setZoom(img: PdfImageView) {
         val center = img.scrollPosition
         setZoom(img.currentZoom, center.x, center.y, img.scaleType)
     }
 
-    /**
-     * Return the point at the center of the zoomed image. The PointF coordinates range
-     * in value between 0 and 1 and the focus point is denoted as a fraction from the left
-     * and top of the view. For example, the top left corner of the image would be (0, 0).
-     * And the bottom right corner would be (1, 1).
-     *
-     * @return PointF representing the scroll position of the zoomed image.
-     */
     val scrollPosition: PointF
         get() {
             val drawable = drawable ?: return PointF(.5f, .5f)
@@ -392,10 +315,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         } else drawable!!.intrinsicHeight
     }
 
-    /**
-     * Performs boundary checking and fixes the image matrix if it
-     * is out of bounds.
-     */
     private fun fixTrans() {
         touchMatrix!!.getValues(floatMatrix)
         val transX = floatMatrix!![Matrix.MTRANS_X]
@@ -409,13 +328,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         touchMatrix!!.postTranslate(fixTransX, fixTransY)
     }
 
-    /**
-     * When transitioning from zooming from focus to zoom from center (or vice versa)
-     * the image can become unaligned within the view. This is apparent when zooming
-     * quickly. When the content size is less than the view size, the content will often
-     * be centered incorrectly within the view. fixScaleTrans first calls fixTrans() and
-     * then makes sure the image is centered correctly within the view.
-     */
     private fun fixScaleTrans() {
         fixTrans()
         touchMatrix!!.getValues(floatMatrix)
@@ -477,57 +389,19 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             savePreviousImageValues()
         }
 
-        // Image view width, height must consider padding
         val width = totalViewWidth - paddingLeft - paddingRight
         val height = totalViewHeight - paddingTop - paddingBottom
 
-        // Set view dimensions
         setMeasuredDimension(width, height)
     }
 
     override fun onSizeChanged(w: Int, h: Int, oldw: Int, oldh: Int) {
         super.onSizeChanged(w, h, oldw, oldh)
-
-        //
-        // Fit content within view.
-        //
-        // onMeasure may be called multiple times for each layout change, including orientation
-        // changes. For example, if the TouchImageView is inside a ConstraintLayout, onMeasure may
-        // be called with:
-        // widthMeasureSpec == "AT_MOST 2556" and then immediately with
-        // widthMeasureSpec == "EXACTLY 1404", then back and forth multiple times in quick
-        // succession, as the ConstraintLayout tries to solve its constraints.
-        //
-        // onSizeChanged is called once after the final onMeasure is called. So we make all changes
-        // to class members, such as fitting the image into the new shape of the TouchImageView,
-        // here, after the final size has been determined. This helps us avoid both
-        // repeated computations, and making irreversible changes (e.g. making the View temporarily too
-        // big or too small, thus making the current zoom fall outside of an automatically-changing
-        // minZoom and maxZoom).
-        //
         viewWidth = w
         viewHeight = h
         fitImageToView()
     }
 
-    /**
-     * This function can be called:
-     * 1. When the TouchImageView is first loaded (onMeasure).
-     * 2. When a new image is loaded (setImageResource|Bitmap|Drawable|URI).
-     * 3. On rotation (onSaveInstanceState, then onRestoreInstanceState, then onMeasure).
-     * 4. When the view is resized (onMeasure).
-     * 5. When the zoom is reset (resetZoom).
-     *
-     *
-     * In cases 2, 3 and 4, we try to maintain the zoom state and position as directed by
-     * orientationChangeFixedPixel or viewSizeChangeFixedPixel (if there is an existing zoom state
-     * and position, which there might not be in case 2).
-     *
-     *
-     * If the normalizedScale is equal to 1, then the image is made to fit the View. Otherwise, we
-     * maintain zoom level and attempt to roughly put the same part of the image in the View as was
-     * there before, paying attention to orientationChangeFixedPixel or viewSizeChangeFixedPixel.
-     */
     private fun fitImageToView() {
         val fixedPixel = if (orientationJustChanged) orientationChangeFixedPixel else viewSizeChangeFixedPixel
         orientationJustChanged = false
@@ -547,9 +421,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         val drawableWidth = getDrawableWidth(drawable)
         val drawableHeight = getDrawableHeight(drawable)
 
-        //
-        // Scale image for view
-        //
         var scaleX = viewWidth.toFloat() / drawableWidth
         var scaleY = viewHeight.toFloat() / drawableHeight
         when (touchScaleType) {
@@ -581,14 +452,12 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             }
         }
 
-        // Put the image's center in the right place.
         val redundantXSpace = viewWidth - scaleX * drawableWidth
         val redundantYSpace = viewHeight - scaleY * drawableHeight
         matchViewWidth = viewWidth - redundantXSpace
         matchViewHeight = viewHeight - redundantYSpace
         if (!isZoomed && !imageRenderedAtLeastOnce) {
 
-            // Stretch and center image to fit view
             if (isRotateImageToFitScreen && orientationMismatch(drawable)) {
                 touchMatrix!!.setRotate(90f)
                 touchMatrix!!.postTranslate(drawableWidth.toFloat(), 0f)
@@ -603,44 +472,32 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             }
             currentZoom = 1f
         } else {
-            // These values should never be 0 or we will set viewWidth and viewHeight
-            // to NaN in newTranslationAfterChange. To avoid this, call savePreviousImageValues
-            // to set them equal to the current values.
             if (prevMatchViewWidth == 0f || prevMatchViewHeight == 0f) {
                 savePreviousImageValues()
             }
 
-            // Use the previous matrix as our starting point for the new matrix.
             prevMatrix!!.getValues(floatMatrix)
 
-            // Rescale Matrix if appropriate
             floatMatrix!![Matrix.MSCALE_X] = matchViewWidth / drawableWidth * currentZoom
             floatMatrix!![Matrix.MSCALE_Y] = matchViewHeight / drawableHeight * currentZoom
 
-            // TransX and TransY from previous matrix
             val transX = floatMatrix!![Matrix.MTRANS_X]
             val transY = floatMatrix!![Matrix.MTRANS_Y]
 
-            // X position
             val prevActualWidth = prevMatchViewWidth * currentZoom
             val actualWidth = imageWidth
             floatMatrix!![Matrix.MTRANS_X] = newTranslationAfterChange(transX, prevActualWidth, actualWidth, prevViewWidth, viewWidth, drawableWidth, fixedPixel)
 
-            // Y position
             val prevActualHeight = prevMatchViewHeight * currentZoom
             val actualHeight = imageHeight
             floatMatrix!![Matrix.MTRANS_Y] = newTranslationAfterChange(transY, prevActualHeight, actualHeight, prevViewHeight, viewHeight, drawableHeight, fixedPixel)
 
-            // Set the matrix to the adjusted scale and translation values.
             touchMatrix!!.setValues(floatMatrix)
         }
         fixTrans()
         imageMatrix = touchMatrix
     }
 
-    /**
-     * Set view dimensions based on layout params
-     */
     private fun setViewSize(mode: Int, size: Int, drawableWidth: Int): Int {
         val viewSize: Int
         viewSize = when (mode) {
@@ -652,51 +509,23 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         return viewSize
     }
 
-    /**
-     * After any change described in the comments for fitImageToView, the matrix needs to be
-     * translated. This function translates the image so that the fixed pixel in the image
-     * stays in the same place in the View.
-     *
-     * @param trans                the value of trans in that axis before the rotation
-     * @param prevImageSize        the width/height of the image before the rotation
-     * @param imageSize            width/height of the image after rotation
-     * @param prevViewSize         width/height of view before rotation
-     * @param viewSize             width/height of view after rotation
-     * @param drawableSize         width/height of drawable
-     * @param sizeChangeFixedPixel how we should choose the fixed pixel
-     */
     private fun newTranslationAfterChange(trans: Float, prevImageSize: Float, imageSize: Float, prevViewSize: Int, viewSize: Int, drawableSize: Int, sizeChangeFixedPixel: FixedPixel?): Float {
         return if (imageSize < viewSize) {
-            //
-            // The width/height of image is less than the view's width/height. Center it.
-            //
             (viewSize - drawableSize * floatMatrix!![Matrix.MSCALE_X]) * 0.5f
         } else if (trans > 0) {
-            //
-            // The image is larger than the view, but was not before the view changed. Center it.
-            //
+
             -((imageSize - viewSize) * 0.5f)
         } else {
-            //
-            // Where is the pixel in the View that we are keeping stable, as a fraction of the
-            // width/height of the View?
-            //
+
             var fixedPixelPositionInView = 0.5f // CENTER
             if (sizeChangeFixedPixel == FixedPixel.BOTTOM_RIGHT) {
                 fixedPixelPositionInView = 1.0f
             } else if (sizeChangeFixedPixel == FixedPixel.TOP_LEFT) {
                 fixedPixelPositionInView = 0.0f
             }
-            //
-            // Where is the pixel in the Image that we are keeping stable, as a fraction of the
-            // width/height of the Image?
-            //
+
             val fixedPixelPositionInImage = (-trans + fixedPixelPositionInView * prevViewSize) / prevImageSize
-            //
-            // Here's what the new translation should be so that, after whatever change triggered
-            // this function to be called, the pixel at fixedPixelPositionInView of the View is
-            // still the pixel at fixedPixelPositionInImage of the image.
-            //
+
             -(fixedPixelPositionInImage * imageSize - viewSize * fixedPixelPositionInView)
         }
     }
@@ -730,13 +559,9 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         } else Math.abs(y) + viewHeight + 1 < imageHeight || direction <= 0
     }
 
-    /**
-     * Gesture Listener detects a single click or long click and passes that on
-     * to the view's listener.
-     */
+    // TODO - apagar
     private inner class GestureListener : GestureDetector.SimpleOnGestureListener() {
         override fun onSingleTapConfirmed(e: MotionEvent?): Boolean {
-            // Pass on to the OnDoubleTapListener if it is present, otherwise let the View handle the click.
             return doubleTapListener?.onSingleTapConfirmed(e) ?: performClick()
         }
 
@@ -745,8 +570,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
 
         override fun onFling(e1: MotionEvent?, e2: MotionEvent?, velocityX: Float, velocityY: Float): Boolean {
-            // If a previous fling is still active, it should be cancelled so that two flings
-            // are not run simultaneously.
             fling?.cancelFling()
             fling = Fling(velocityX.toInt(), velocityY.toInt())
                 .also { compatPostOnAnimation(it) }
@@ -762,13 +585,8 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         fun onMove()
     }
 
-    /**
-     * Responsible for all touch events. Handles the heavy lifting of drag and also sends
-     * touch events to Scale Detector and Gesture Detector.
-     */
     private inner class PrivateOnTouchListener : OnTouchListener {
 
-        // Remember last point position for dragging
         private val last = PointF()
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             if (drawable == null) {
@@ -801,30 +619,18 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             }
             imageMatrix = touchMatrix
 
-            //
-            // User-defined OnTouchListener
-            //
             if (userTouchListener != null) {
                 userTouchListener!!.onTouch(v, event)
             }
 
-            //
-            // OnTouchImageViewListener is set: TouchImageView dragged by user.
-            //
             if (touchImageViewListener != null) {
                 touchImageViewListener!!.onMove()
             }
 
-            //
-            // indicate event was handled
-            //
             return true
         }
     }
 
-    /**
-     * ScaleListener detects user two finger scaling and scales image.
-     */
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
             setState(State.ZOOM)
@@ -834,9 +640,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleImage(detector.scaleFactor.toDouble(), detector.focusX, detector.focusY, true)
 
-            //
-            // OnTouchImageViewListener is set: TouchImageView pinch zoomed by user.
-            //
             if (touchImageViewListener != null) {
                 touchImageViewListener!!.onMove()
             }
@@ -868,16 +671,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         fixScaleTrans()
     }
 
-    /**
-     * This function will transform the coordinates in the touch event to the coordinate
-     * system of the drawable that the imageview contain
-     *
-     * @param x            x-coordinate of touch event
-     * @param y            y-coordinate of touch event
-     * @param clipToBitmap Touch event may occur within view, but outside image content. True, to clip return value
-     * to the bounds of the bitmap size.
-     * @return Coordinates of the point touched, in the coordinate system of the original drawable.
-     */
     protected fun transformCoordTouchToBitmap(x: Float, y: Float, clipToBitmap: Boolean): PointF {
         touchMatrix!!.getValues(floatMatrix)
         val origW = drawable.intrinsicWidth.toFloat()
@@ -893,11 +686,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         return PointF(finalX, finalY)
     }
 
-    /**
-     * Fling launches sequential runnables which apply
-     * the fling graphic to the image. The values for the translation
-     * are interpolated by the Scroller.
-     */
     private inner class Fling internal constructor(velocityX: Int, velocityY: Int) : Runnable {
         var scroller: CompatScroller?
         var currX: Int
@@ -910,9 +698,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
 
         override fun run() {
-
-            // OnTouchImageViewListener is set: TouchImageView listener has been flung by user.
-            // Listener runnable updated with each frame of fling animation.
             if (touchImageViewListener != null) {
                 touchImageViewListener!!.onMove()
             }
@@ -967,7 +752,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.GINGERBREAD)
     private inner class CompatScroller internal constructor(context: Context?) {
         var overScroller: OverScroller
         fun fling(startX: Int, startY: Int, velocityX: Int, velocityY: Int, minX: Int, maxX: Int, minY: Int, maxY: Int) {
@@ -997,26 +781,14 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
     }
 
-    @TargetApi(Build.VERSION_CODES.JELLY_BEAN)
     private fun compatPostOnAnimation(runnable: Runnable) {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
-            postOnAnimation(runnable)
-        } else {
-            postDelayed(runnable, 1000 / 60.toLong())
-        }
+        postOnAnimation(runnable)
     }
 
 
     companion object {
-        // SuperMin and SuperMax multipliers. Determine how much the image can be
-        // zoomed below or above the zoom boundaries, before animating back to the
-        // min/max zoom boundary.
         private const val SUPER_MIN_MULTIPLIER = .75f
         private const val SUPER_MAX_MULTIPLIER = 1.25f
-
-        /**
-         * If setMinZoom(AUTOMATIC_MIN_ZOOM), then we'll set the min scale to include the whole image.
-         */
         const val AUTOMATIC_MIN_ZOOM = -1.0f
     }
 
