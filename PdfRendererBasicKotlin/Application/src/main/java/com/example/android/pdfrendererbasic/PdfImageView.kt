@@ -17,33 +17,34 @@ class PdfImageView@JvmOverloads constructor(
     attrs: AttributeSet? = null,
     defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
 
-    private var zoom = 0f
+    private var userTouchListener: OnTouchListener? = null
+    private var listenerView: OnTouchImageViewListener? = null
     private var mMatrix: Matrix? = null
     private var matrixState: Matrix? = null
+    private var typeGesture: TypeGesture? = null
+    private var fMatrix: FloatArray? = null
+    private var touchScaleType: ScaleType? = null
+    private var flingGesture: FlingGesture? = null
+
+    private var zoom = 0f
     private var zoomToggle = false
     private var screenView = false
-    private var typeGesture: TypeGesture? = null
     private var userSpecifiedMinScale = 0f
     private var minScale = 0f
     private var maxScale = 0f
-    private var maxScaleIsSetByMultiplier = false
-    private var maxScaleMultiplier = 0f
+    private var isMaxScaleResult = false
+    private var maxScaleResult = 0f
     private var viewMinScale = 0f
     private var maxViewScale = 0f
-    private var floatMatrix: FloatArray? = null
-    private var flingGesture: FlingGesture? = null
-    private var touchScaleType: ScaleType? = null
     private var onDrawReady = false
     private var viewWidth = 0
     private var viewHeight = 0
-    private var prevViewWidth = 0
-    private var prevViewHeight = 0
+    private var cachedWidth = 0
+    private var cachedHeight = 0
     private var matchViewWidth = 0f
     private var matchViewHeight = 0f
-    private var prevMatchViewWidth = 0f
-    private var prevMatchViewHeight = 0f
-    private var userTouchListener: OnTouchListener? = null
-    private var touchImageViewListener: OnTouchImageViewListener? = null
+    private var widthState = 0f
+    private var heightState = 0f
     private val isZoomed get() = zoom != 1f
     private var mScaleDetector: ScaleGestureDetector = ScaleGestureDetector(context, ScaleListener())
     private var mGestureDetector: GestureDetector = GestureDetector(context, GestureListener())
@@ -51,7 +52,7 @@ class PdfImageView@JvmOverloads constructor(
     init {
         mMatrix = Matrix()
         matrixState = Matrix()
-        floatMatrix = FloatArray(9)
+        fMatrix = FloatArray(9)
         zoom = 1f
         touchScaleType = ScaleType.FIT_CENTER
         minScale = 1f
@@ -143,16 +144,16 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     override fun canScrollHorizontally(direction: Int): Boolean {
-        mMatrix!!.getValues(floatMatrix)
-        val x = floatMatrix!![Matrix.MTRANS_X]
+        mMatrix!!.getValues(fMatrix)
+        val x = fMatrix!![Matrix.MTRANS_X]
         return if (imageWidth < viewWidth) false
         else if (x >= -1 && direction < 0) false
         else Math.abs(x) + viewWidth + 1 < imageWidth || direction <= 0
     }
 
     override fun canScrollVertically(direction: Int): Boolean {
-        mMatrix!!.getValues(floatMatrix)
-        val y = floatMatrix!![Matrix.MTRANS_Y]
+        mMatrix!!.getValues(fMatrix)
+        val y = fMatrix!![Matrix.MTRANS_Y]
         return if (imageHeight < viewHeight) {
             false
         } else if (y >= -1 && direction < 0) {
@@ -171,20 +172,20 @@ class PdfImageView@JvmOverloads constructor(
 
     private fun setImageViewState() {
         if (mMatrix != null && viewHeight != 0 && viewWidth != 0) {
-            mMatrix!!.getValues(floatMatrix)
-            matrixState!!.setValues(floatMatrix)
-            prevMatchViewHeight = matchViewHeight
-            prevMatchViewWidth = matchViewWidth
-            prevViewHeight = viewHeight
-            prevViewWidth = viewWidth
+            mMatrix!!.getValues(fMatrix)
+            matrixState!!.setValues(fMatrix)
+            heightState = matchViewHeight
+            widthState = matchViewWidth
+            cachedHeight = viewHeight
+            cachedWidth = viewWidth
         }
     }
 
     private fun zoomViewRatio(max: Float) {
-        maxScaleMultiplier = max
-        maxScale = minScale * maxScaleMultiplier
+        maxScaleResult = max
+        maxScale = minScale * maxScaleResult
         maxViewScale = 1.25f * maxScale
-        maxScaleIsSetByMultiplier = true
+        isMaxScaleResult = true
     }
 
     var minZoom: Float
@@ -211,8 +212,8 @@ class PdfImageView@JvmOverloads constructor(
             } else {
                 minScale = userSpecifiedMinScale
             }
-            if (maxScaleIsSetByMultiplier) {
-                zoomViewRatio(maxScaleMultiplier)
+            if (isMaxScaleResult) {
+                zoomViewRatio(maxScaleResult)
             }
             viewMinScale = .75f * minScale
         }
@@ -234,10 +235,10 @@ class PdfImageView@JvmOverloads constructor(
         }
         resetZoom()
         scaleImage(scale.toDouble(), viewWidth / 2.toFloat(), viewHeight / 2.toFloat(), true)
-        mMatrix!!.getValues(floatMatrix)
-        floatMatrix!![Matrix.MTRANS_X] = -(focusX * imageWidth - viewWidth * 0.5f)
-        floatMatrix!![Matrix.MTRANS_Y] = -(focusY * imageHeight - viewHeight * 0.5f)
-        mMatrix!!.setValues(floatMatrix)
+        mMatrix!!.getValues(fMatrix)
+        fMatrix!![Matrix.MTRANS_X] = -(focusX * imageWidth - viewWidth * 0.5f)
+        fMatrix!![Matrix.MTRANS_Y] = -(focusY * imageHeight - viewHeight * 0.5f)
+        mMatrix!!.setValues(fMatrix)
         setImageViewState()
         imageMatrix = mMatrix
     }
@@ -271,18 +272,18 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     private fun fixScaleTrans() {
-        mMatrix!!.getValues(floatMatrix)
+        mMatrix!!.getValues(fMatrix)
         if (imageWidth < viewWidth) {
             var xOffset = (viewWidth - imageWidth) / 2
             if (screenView) {
                 xOffset += imageWidth
             }
-            floatMatrix!![Matrix.MTRANS_X] = xOffset
+            fMatrix!![Matrix.MTRANS_X] = xOffset
         }
         if (imageHeight < viewHeight) {
-            floatMatrix!![Matrix.MTRANS_Y] = (viewHeight - imageHeight) / 2
+            fMatrix!![Matrix.MTRANS_Y] = (viewHeight - imageHeight) / 2
         }
-        mMatrix!!.setValues(floatMatrix)
+        mMatrix!!.setValues(fMatrix)
     }
 
     private fun getFixDragTrans(delta: Float, viewSize: Float, contentSize: Float): Float {
@@ -364,16 +365,16 @@ class PdfImageView@JvmOverloads constructor(
             }
             zoom = 1f
         } else {
-            if (prevMatchViewWidth == 0f || prevMatchViewHeight == 0f) {
+            if (widthState == 0f || heightState == 0f) {
                 setImageViewState()
             }
 
-            matrixState!!.getValues(floatMatrix)
+            matrixState!!.getValues(fMatrix)
 
-            floatMatrix!![Matrix.MSCALE_X] = matchViewWidth / drawableWidth * zoom
-            floatMatrix!![Matrix.MSCALE_Y] = matchViewHeight / drawableHeight * zoom
+            fMatrix!![Matrix.MSCALE_X] = matchViewWidth / drawableWidth * zoom
+            fMatrix!![Matrix.MSCALE_Y] = matchViewHeight / drawableHeight * zoom
 
-            mMatrix!!.setValues(floatMatrix)
+            mMatrix!!.setValues(fMatrix)
         }
         imageMatrix = mMatrix
     }
@@ -443,8 +444,8 @@ class PdfImageView@JvmOverloads constructor(
                 userTouchListener!!.onTouch(v, event)
             }
 
-            if (touchImageViewListener != null) {
-                touchImageViewListener!!.onMove()
+            if (listenerView != null) {
+                listenerView!!.onMove()
             }
 
             return true
@@ -476,11 +477,11 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     protected fun imageViewCoordination(x: Float, y: Float, clipToBitmap: Boolean): PointF {
-        mMatrix!!.getValues(floatMatrix)
+        mMatrix!!.getValues(fMatrix)
         val origW = drawable.intrinsicWidth.toFloat()
         val origH = drawable.intrinsicHeight.toFloat()
-        val transX = floatMatrix!![Matrix.MTRANS_X]
-        val transY = floatMatrix!![Matrix.MTRANS_Y]
+        val transX = fMatrix!![Matrix.MTRANS_X]
+        val transY = fMatrix!![Matrix.MTRANS_Y]
         var finalX = (x - transX) * origW / imageWidth
         var finalY = (y - transY) * origH / imageHeight
         if (clipToBitmap) {
@@ -501,9 +502,8 @@ class PdfImageView@JvmOverloads constructor(
         }
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleImage(detector.scaleFactor.toDouble(), detector.focusX, detector.focusY, true)
-
-            if (touchImageViewListener != null) {
-                touchImageViewListener!!.onMove()
+            if (listenerView != null) {
+                listenerView!!.onMove()
             }
             return true
         }
@@ -526,8 +526,8 @@ class PdfImageView@JvmOverloads constructor(
         }
 
         override fun run() {
-            if (touchImageViewListener != null) {
-                touchImageViewListener!!.onMove()
+            if (listenerView != null) {
+                listenerView!!.onMove()
             }
             if (scroller!!.isFinished) {
                 scroller = null
@@ -549,9 +549,9 @@ class PdfImageView@JvmOverloads constructor(
         init {
             flingGestureType(TypeGesture.FLING)
             scroller = ScrollState(context)
-            mMatrix!!.getValues(floatMatrix)
-            var startX = floatMatrix!![Matrix.MTRANS_X].toInt()
-            val startY = floatMatrix!![Matrix.MTRANS_Y].toInt()
+            mMatrix!!.getValues(fMatrix)
+            var startX = fMatrix!![Matrix.MTRANS_X].toInt()
+            val startY = fMatrix!![Matrix.MTRANS_Y].toInt()
             if (screenView) {
                 startX -= imageWidth.toInt()
             }
