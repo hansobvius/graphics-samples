@@ -75,7 +75,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     private var touchScaleType: ScaleType? = null
     private var imageRenderedAtLeastOnce = false
     private var onDrawReady = false
-    private var delayedZoomVariables: ZoomVariables? = null
 
     // Size of view and previous view size (ie before rotation)
     private var viewWidth = 0
@@ -243,10 +242,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     override fun onDraw(canvas: Canvas) {
         onDrawReady = true
         imageRenderedAtLeastOnce = true
-        if (delayedZoomVariables != null) {
-            setZoom(delayedZoomVariables!!.scale, delayedZoomVariables!!.focusX, delayedZoomVariables!!.focusY, delayedZoomVariables!!.scaleType)
-            delayedZoomVariables = null
-        }
         super.onDraw(canvas)
     }
 
@@ -326,26 +321,12 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
      * as a fraction from the left and top of the view. For example, the top left
      * corner of the image would be (0, 0). And the bottom right corner would be (1, 1).
      */
-    fun setZoom(scale: Float, focusX: Float, focusY: Float) {
-        setZoom(scale, focusX, focusY, touchScaleType)
-    }
-
-    /**
-     * Set zoom to the specified scale. Image will be centered around the point
-     * (focusX, focusY). These floats range from 0 to 1 and denote the focus point
-     * as a fraction from the left and top of the view. For example, the top left
-     * corner of the image would be (0, 0). And the bottom right corner would be (1, 1).
-     */
     fun setZoom(scale: Float, focusX: Float, focusY: Float, scaleType: ScaleType?) {
         //
         // setZoom can be called before the image is on the screen, but at this point,
         // image and view sizes have not yet been calculated in onMeasure. Thus, we should
         // delay calling setZoom until the view has been measured.
         //
-        if (!onDrawReady) {
-            delayedZoomVariables = ZoomVariables(scale, focusX, focusY, scaleType)
-            return
-        }
         if (userSpecifiedMinScale == AUTOMATIC_MIN_ZOOM) {
             minZoom = AUTOMATIC_MIN_ZOOM
             if (currentZoom < minScale) {
@@ -1025,66 +1006,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
     }
 
-    private inner class ZoomVariables internal constructor(var scale: Float, var focusX: Float, var focusY: Float, var scaleType: ScaleType?)
-
-    interface OnZoomFinishedListener {
-        fun onZoomFinished()
-    }
-
-    /**
-     * AnimatedZoom calls a series of runnables which apply
-     * an animated zoom to the specified target focus at the specified zoom level.
-     */
-    private inner class AnimatedZoom internal constructor(targetZoom: Float, focus: PointF, zoomTimeMillis: Int) : Runnable {
-        private val zoomTimeMillis: Int
-        private val startTime: Long
-        private val startZoom: Float
-        private val targetZoom: Float
-        private val startFocus: PointF
-        private val targetFocus: PointF
-        private val interpolator = LinearInterpolator()
-        private var listener: OnZoomFinishedListener? = null
-        override fun run() {
-            val t = interpolate()
-
-            // Calculate the next focus and zoom based on the progress of the interpolation
-            val nextZoom = startZoom + (targetZoom - startZoom) * t
-            val nextX = startFocus.x + (targetFocus.x - startFocus.x) * t
-            val nextY = startFocus.y + (targetFocus.y - startFocus.y) * t
-            setZoom(nextZoom, nextX, nextY)
-            if (t < 1f) {
-                // We haven't finished zooming
-                compatPostOnAnimation(this)
-            } else {
-                // Finished zooming
-                setState(State.NONE)
-                if (listener != null) listener!!.onZoomFinished()
-            }
-        }
-
-        /**
-         * Use interpolator to get t
-         *
-         * @return progress of the interpolation
-         */
-        private fun interpolate(): Float {
-            var elapsed = (System.currentTimeMillis() - startTime) / zoomTimeMillis.toFloat()
-            elapsed = Math.min(1f, elapsed)
-            return interpolator.getInterpolation(elapsed)
-        }
-
-        init {
-            setState(State.ANIMATE_ZOOM)
-            startTime = System.currentTimeMillis()
-            startZoom = currentZoom
-            this.targetZoom = targetZoom
-            this.zoomTimeMillis = zoomTimeMillis
-
-            // Used for translating image during zooming
-            startFocus = scrollPosition
-            targetFocus = focus
-        }
-    }
 
     companion object {
         // SuperMin and SuperMax multipliers. Determine how much the image can be
@@ -1092,7 +1013,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         // min/max zoom boundary.
         private const val SUPER_MIN_MULTIPLIER = .75f
         private const val SUPER_MAX_MULTIPLIER = 1.25f
-        private const val DEFAULT_ZOOM_TIME = 500
 
         /**
          * If setMinZoom(AUTOMATIC_MIN_ZOOM), then we'll set the min scale to include the whole image.
