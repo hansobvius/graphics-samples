@@ -26,12 +26,6 @@ class PdfImageView@JvmOverloads constructor(
     var isZoomEnabled = false
     private var isRotateImageToFitScreen = false
 
-    enum class FixedPixel {
-        CENTER, TOP_LEFT, BOTTOM_RIGHT
-    }
-
-    var viewSizeChangeFixedPixel: FixedPixel? = FixedPixel.CENTER
-
     private enum class State {
         NONE, DRAG, ZOOM, FLING
     }
@@ -47,7 +41,6 @@ class PdfImageView@JvmOverloads constructor(
     private var floatMatrix: FloatArray? = null
 
     private var fling: Fling? = null
-    private var orientation = 0
     private var touchScaleType: ScaleType? = null
     private var imageRenderedAtLeastOnce = false
     private var onDrawReady = false
@@ -68,7 +61,6 @@ class PdfImageView@JvmOverloads constructor(
 
     init {
         super.setClickable(true)
-        orientation = resources.configuration.orientation
         mScaleDetector = ScaleGestureDetector(context, ScaleListener())
         mGestureDetector = GestureDetector(context, GestureListener())
         touchMatrix = Matrix()
@@ -222,7 +214,6 @@ class PdfImageView@JvmOverloads constructor(
         floatMatrix!![Matrix.MTRANS_X] = -(focusX * imageWidth - viewWidth * 0.5f)
         floatMatrix!![Matrix.MTRANS_Y] = -(focusY * imageHeight - viewHeight * 0.5f)
         touchMatrix!!.setValues(floatMatrix)
-        fixTrans()
         savePreviousImageValues()
         imageMatrix = touchMatrix
     }
@@ -255,21 +246,7 @@ class PdfImageView@JvmOverloads constructor(
         } else drawable!!.intrinsicHeight
     }
 
-    private fun fixTrans() {
-        touchMatrix!!.getValues(floatMatrix)
-        val transX = floatMatrix!![Matrix.MTRANS_X]
-        val transY = floatMatrix!![Matrix.MTRANS_Y]
-        var offset = 0f
-        if (isRotateImageToFitScreen) {
-            offset = imageWidth
-        }
-        val fixTransX = getFixTrans(transX, viewWidth.toFloat(), imageWidth, offset)
-        val fixTransY = getFixTrans(transY, viewHeight.toFloat(), imageHeight, 0f)
-        touchMatrix!!.postTranslate(fixTransX, fixTransY)
-    }
-
     private fun fixScaleTrans() {
-        fixTrans()
         touchMatrix!!.getValues(floatMatrix)
         if (imageWidth < viewWidth) {
             var xOffset = (viewWidth - imageWidth) / 2
@@ -341,7 +318,6 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     private fun fitImageToView() {
-        val fixedPixel = viewSizeChangeFixedPixel
         val drawable = drawable
         if (drawable == null || drawable.intrinsicWidth == 0 || drawable.intrinsicHeight == 0) {
             return
@@ -418,20 +394,8 @@ class PdfImageView@JvmOverloads constructor(
             floatMatrix!![Matrix.MSCALE_X] = matchViewWidth / drawableWidth * currentZoom
             floatMatrix!![Matrix.MSCALE_Y] = matchViewHeight / drawableHeight * currentZoom
 
-            val transX = floatMatrix!![Matrix.MTRANS_X]
-            val transY = floatMatrix!![Matrix.MTRANS_Y]
-
-            val prevActualWidth = prevMatchViewWidth * currentZoom
-            val actualWidth = imageWidth
-            floatMatrix!![Matrix.MTRANS_X] = newTranslationAfterChange(transX, prevActualWidth, actualWidth, prevViewWidth, viewWidth, drawableWidth, fixedPixel)
-
-            val prevActualHeight = prevMatchViewHeight * currentZoom
-            val actualHeight = imageHeight
-            floatMatrix!![Matrix.MTRANS_Y] = newTranslationAfterChange(transY, prevActualHeight, actualHeight, prevViewHeight, viewHeight, drawableHeight, fixedPixel)
-
             touchMatrix!!.setValues(floatMatrix)
         }
-        fixTrans()
         imageMatrix = touchMatrix
     }
 
@@ -444,27 +408,6 @@ class PdfImageView@JvmOverloads constructor(
             else -> size
         }
         return viewSize
-    }
-
-    private fun newTranslationAfterChange(trans: Float, prevImageSize: Float, imageSize: Float, prevViewSize: Int, viewSize: Int, drawableSize: Int, sizeChangeFixedPixel: FixedPixel?): Float {
-        return if (imageSize < viewSize) {
-            (viewSize - drawableSize * floatMatrix!![Matrix.MSCALE_X]) * 0.5f
-        } else if (trans > 0) {
-
-            -((imageSize - viewSize) * 0.5f)
-        } else {
-
-            var fixedPixelPositionInView = 0.5f
-            if (sizeChangeFixedPixel == FixedPixel.BOTTOM_RIGHT) {
-                fixedPixelPositionInView = 1.0f
-            } else if (sizeChangeFixedPixel == FixedPixel.TOP_LEFT) {
-                fixedPixelPositionInView = 0.0f
-            }
-
-            val fixedPixelPositionInImage = (-trans + fixedPixelPositionInView * prevViewSize) / prevImageSize
-
-            -(fixedPixelPositionInImage * imageSize - viewSize * fixedPixelPositionInView)
-        }
     }
 
     private fun setState(state: State) {
@@ -530,7 +473,6 @@ class PdfImageView@JvmOverloads constructor(
                         val fixTransX = getFixDragTrans(deltaX, viewWidth.toFloat(), imageWidth)
                         val fixTransY = getFixDragTrans(deltaY, viewHeight.toFloat(), imageHeight)
                         touchMatrix!!.postTranslate(fixTransX, fixTransY)
-                        fixTrans()
                         last[curr.x] = curr.y
                     }
                     MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> setState(State.NONE)
@@ -631,7 +573,6 @@ class PdfImageView@JvmOverloads constructor(
                 currX = newX
                 currY = newY
                 touchMatrix!!.postTranslate(transX.toFloat(), transY.toFloat())
-                fixTrans()
                 imageMatrix = touchMatrix
                 compatPostOnAnimation(this)
             }
