@@ -30,9 +30,7 @@ class PdfImageView@JvmOverloads constructor(
         CENTER, TOP_LEFT, BOTTOM_RIGHT
     }
 
-    var orientationChangeFixedPixel: FixedPixel? = FixedPixel.CENTER
     var viewSizeChangeFixedPixel: FixedPixel? = FixedPixel.CENTER
-    private var orientationJustChanged = false
 
     private enum class State {
         NONE, DRAG, ZOOM, FLING
@@ -168,11 +166,6 @@ class PdfImageView@JvmOverloads constructor(
 
     public override fun onConfigurationChanged(newConfig: Configuration) {
         super.onConfigurationChanged(newConfig)
-        val newOrientation = resources.configuration.orientation
-        if (newOrientation != orientation) {
-            orientationJustChanged = true
-            orientation = newOrientation
-        }
         savePreviousImageValues()
     }
     fun setMaxZoomRatio(max: Float) {
@@ -340,9 +333,7 @@ class PdfImageView@JvmOverloads constructor(
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
         val totalViewWidth = setViewSize(widthMode, widthSize, drawableWidth)
         val totalViewHeight = setViewSize(heightMode, heightSize, drawableHeight)
-        if (!orientationJustChanged) {
-            savePreviousImageValues()
-        }
+        savePreviousImageValues()
 
         val width = totalViewWidth - paddingLeft - paddingRight
         val height = totalViewHeight - paddingTop - paddingBottom
@@ -358,8 +349,7 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     private fun fitImageToView() {
-        val fixedPixel = if (orientationJustChanged) orientationChangeFixedPixel else viewSizeChangeFixedPixel
-        orientationJustChanged = false
+        val fixedPixel = viewSizeChangeFixedPixel
         val drawable = drawable
         if (drawable == null || drawable.intrinsicWidth == 0 || drawable.intrinsicHeight == 0) {
             return
@@ -721,11 +711,9 @@ class PdfImageView@JvmOverloads constructor(
         postOnAnimation(runnable)
     }
 
-
     companion object {
         private const val SUPER_MIN_MULTIPLIER = .75f
         private const val SUPER_MAX_MULTIPLIER = 1.25f
         const val AUTOMATIC_MIN_ZOOM = -1.0f
     }
-
 }
