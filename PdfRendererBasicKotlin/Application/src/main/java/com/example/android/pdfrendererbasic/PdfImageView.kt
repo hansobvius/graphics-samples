@@ -1,7 +1,6 @@
 package com.example.android.pdfrendererbasic
 
 import android.content.Context
-import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
@@ -26,11 +25,11 @@ class PdfImageView@JvmOverloads constructor(
     var isZoomEnabled = false
     private var isRotateImageToFitScreen = false
 
-    private enum class State {
+    private enum class TypeGesture {
         NONE, DRAG, ZOOM, FLING
     }
 
-    private var state: State? = null
+    private var typeGesture: TypeGesture? = null
     private var userSpecifiedMinScale = 0f
     private var minScale = 0f
     private var maxScaleIsSetByMultiplier = false
@@ -42,7 +41,6 @@ class PdfImageView@JvmOverloads constructor(
 
     private var fling: Fling? = null
     private var touchScaleType: ScaleType? = null
-    private var imageRenderedAtLeastOnce = false
     private var onDrawReady = false
 
     private var viewWidth = 0
@@ -76,7 +74,7 @@ class PdfImageView@JvmOverloads constructor(
         superMaxScale = SUPER_MAX_MULTIPLIER * maxScale
         imageMatrix = touchMatrix
         scaleType = ScaleType.MATRIX
-        setState(State.NONE)
+        setState(TypeGesture.NONE)
         onDrawReady = false
         super.setOnTouchListener(PrivateOnTouchListener())
         val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.TouchImageView, defStyle, 0)
@@ -94,28 +92,24 @@ class PdfImageView@JvmOverloads constructor(
     }
 
     override fun setImageResource(resId: Int) {
-        imageRenderedAtLeastOnce = false
         super.setImageResource(resId)
         savePreviousImageValues()
         fitImageToView()
     }
 
     override fun setImageBitmap(bm: Bitmap) {
-        imageRenderedAtLeastOnce = false
         super.setImageBitmap(bm)
         savePreviousImageValues()
         fitImageToView()
     }
 
     override fun setImageDrawable(drawable: Drawable?) {
-        imageRenderedAtLeastOnce = false
         super.setImageDrawable(drawable)
         savePreviousImageValues()
         fitImageToView()
     }
 
     override fun setImageURI(uri: Uri?) {
-        imageRenderedAtLeastOnce = false
         super.setImageURI(uri)
         savePreviousImageValues()
         fitImageToView()
@@ -152,7 +146,6 @@ class PdfImageView@JvmOverloads constructor(
 
     override fun onDraw(canvas: Canvas) {
         onDrawReady = true
-        imageRenderedAtLeastOnce = true
         super.onDraw(canvas)
     }
 
@@ -261,20 +254,6 @@ class PdfImageView@JvmOverloads constructor(
         touchMatrix!!.setValues(floatMatrix)
     }
 
-    private fun getFixTrans(trans: Float, viewSize: Float, contentSize: Float, offset: Float): Float {
-        val minTrans: Float
-        val maxTrans: Float
-        if (contentSize <= viewSize) {
-            minTrans = offset
-            maxTrans = offset + viewSize - contentSize
-        } else {
-            minTrans = offset + viewSize - contentSize
-            maxTrans = offset
-        }
-        if (trans < minTrans) return -trans + minTrans
-        return if (trans > maxTrans) -trans + maxTrans else 0f
-    }
-
     private fun getFixDragTrans(delta: Float, viewSize: Float, contentSize: Float): Float {
         return if (contentSize <= viewSize) {
             0f
@@ -369,7 +348,7 @@ class PdfImageView@JvmOverloads constructor(
         val redundantYSpace = viewHeight - scaleY * drawableHeight
         matchViewWidth = viewWidth - redundantXSpace
         matchViewHeight = viewHeight - redundantYSpace
-        if (!isZoomed && !imageRenderedAtLeastOnce) {
+        if (!isZoomed) {
 
             if (isRotateImageToFitScreen) {
                 touchMatrix!!.setRotate(90f)
@@ -410,8 +389,8 @@ class PdfImageView@JvmOverloads constructor(
         return viewSize
     }
 
-    private fun setState(state: State) {
-        this.state = state
+    private fun setState(typeGesture: TypeGesture) {
+        this.typeGesture = typeGesture
     }
 
     override fun canScrollHorizontally(direction: Int): Boolean {
@@ -452,7 +431,7 @@ class PdfImageView@JvmOverloads constructor(
         private val last = PointF()
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             if (drawable == null) {
-                setState(State.NONE)
+                setState(TypeGesture.NONE)
                 return false
             }
             if (isZoomEnabled) {
@@ -460,14 +439,14 @@ class PdfImageView@JvmOverloads constructor(
             }
             mGestureDetector!!.onTouchEvent(event)
             val curr = PointF(event.x, event.y)
-            if (state == State.NONE || state == State.DRAG || state == State.FLING) {
+            if (typeGesture == TypeGesture.NONE || typeGesture == TypeGesture.DRAG || typeGesture == TypeGesture.FLING) {
                 when (event.action) {
                     MotionEvent.ACTION_DOWN -> {
                         last.set(curr)
                         if (fling != null) fling!!.cancelFling()
-                        setState(State.DRAG)
+                        setState(TypeGesture.DRAG)
                     }
-                    MotionEvent.ACTION_MOVE -> if (state == State.DRAG) {
+                    MotionEvent.ACTION_MOVE -> if (typeGesture == TypeGesture.DRAG) {
                         val deltaX = curr.x - last.x
                         val deltaY = curr.y - last.y
                         val fixTransX = getFixDragTrans(deltaX, viewWidth.toFloat(), imageWidth)
@@ -475,7 +454,7 @@ class PdfImageView@JvmOverloads constructor(
                         touchMatrix!!.postTranslate(fixTransX, fixTransY)
                         last[curr.x] = curr.y
                     }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> setState(State.NONE)
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> setState(TypeGesture.NONE)
                 }
             }
             imageMatrix = touchMatrix
@@ -494,7 +473,7 @@ class PdfImageView@JvmOverloads constructor(
 
     private inner class ScaleListener : ScaleGestureDetector.SimpleOnScaleGestureListener() {
         override fun onScaleBegin(detector: ScaleGestureDetector): Boolean {
-            setState(State.ZOOM)
+            setState(TypeGesture.ZOOM)
             return true
         }
         override fun onScale(detector: ScaleGestureDetector): Boolean {
@@ -552,7 +531,7 @@ class PdfImageView@JvmOverloads constructor(
         var currY: Int
         fun cancelFling() {
             if (scroller != null) {
-                setState(State.NONE)
+                setState(TypeGesture.NONE)
                 scroller!!.forceFinished(true)
             }
         }
@@ -579,7 +558,7 @@ class PdfImageView@JvmOverloads constructor(
         }
 
         init {
-            setState(State.FLING)
+            setState(TypeGesture.FLING)
             scroller = CompatScroller(context)
             touchMatrix!!.getValues(floatMatrix)
             var startX = floatMatrix!![Matrix.MTRANS_X].toInt()
