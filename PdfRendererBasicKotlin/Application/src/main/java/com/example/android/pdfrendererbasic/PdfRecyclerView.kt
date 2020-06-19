@@ -33,12 +33,13 @@ class PdfRecyclerView(private val bitmapList: List<Bitmap>): RecyclerView.Adapte
 
         scaleDetector = ScaleGestureDetector(holder.itemView.context, scaleListener)
 
-        holder.pdfContent.setOnTouchListener { view, event ->
-            scaleDetector!!.onTouchEvent(event)
-            true
+        holder.pdfContent.apply{
+            this.setOnTouchListener { view, event ->
+                scaleDetector!!.onTouchEvent(event)
+                true
+            }
+            setImageBitmap(bitmapList[position])
         }
-
-        holder.pdfContent.setImageBitmap(bitmapList[position])
     }
 
     override fun getItemCount(): Int = bitmapList.count()
