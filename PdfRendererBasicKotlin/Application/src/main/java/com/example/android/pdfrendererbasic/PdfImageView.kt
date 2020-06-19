@@ -126,20 +126,8 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
     }
 
-    fun setRotateImageToFitScreen(rotateImageToFitScreen: Boolean) {
-        isRotateImageToFitScreen = rotateImageToFitScreen
-    }
-
     override fun setOnTouchListener(onTouchListener: OnTouchListener) {
         userTouchListener = onTouchListener
-    }
-
-    fun setOnTouchImageViewListener(onTouchImageViewListener: OnTouchImageViewListener) {
-        touchImageViewListener = onTouchImageViewListener
-    }
-
-    fun setOnDoubleTapListener(onDoubleTapListener: GestureDetector.OnDoubleTapListener) {
-        doubleTapListener = onDoubleTapListener
     }
 
     override fun setImageResource(resId: Int) {
@@ -196,23 +184,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
      */
     val isZoomed: Boolean
         get() = currentZoom != 1f
-
-    /**
-     * Return a Rect representing the zoomed image.
-     *
-     * @return rect representing zoomed image
-     */
-    val zoomedRect: RectF
-        get() {
-            if (touchScaleType == ScaleType.FIT_XY) {
-                throw UnsupportedOperationException("getZoomedRect() not supported with FIT_XY")
-            }
-            val topLeft = transformCoordTouchToBitmap(0f, 0f, true)
-            val bottomRight = transformCoordTouchToBitmap(viewWidth.toFloat(), viewHeight.toFloat(), true)
-            val w = getDrawableWidth(drawable).toFloat()
-            val h = getDrawableHeight(drawable).toFloat()
-            return RectF(topLeft.x / w, topLeft.y / h, bottomRight.x / w, bottomRight.y / h)
-        }
 
     /**
      * Save the current matrix and view dimensions
@@ -290,23 +261,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     }
 
     /**
-     * Get the max zoom multiplier.
-     *
-     * @return max zoom multiplier.
-     */
-    /**
-     * Set the max zoom multiplier to a constant. Default value: 3.
-     *
-     */
-    var maxZoom: Float
-        get() = maxScale
-        set(max) {
-            maxScale = max
-            superMaxScale = SUPER_MAX_MULTIPLIER * maxScale
-            maxScaleIsSetByMultiplier = false
-        }
-
-    /**
      * Set the max zoom multiplier as a multiple of minZoom, whatever minZoom may change to. By
      * default, this is not done, and maxZoom has a fixed value of 3.
      *
@@ -364,17 +318,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     fun resetZoom() {
         currentZoom = 1f
         fitImageToView()
-    }
-
-    fun resetZoomAnimated() {
-        setZoomAnimated(1f, 0.5f, 0.5f)
-    }
-
-    /**
-     * Set zoom to the specified scale. Image will be centered by default.
-     */
-    fun setZoom(scale: Float) {
-        setZoom(scale, 0.5f, 0.5f)
     }
 
     /**
@@ -466,14 +409,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         return if (orientationMismatch(drawable) && isRotateImageToFitScreen) {
             drawable!!.intrinsicWidth
         } else drawable!!.intrinsicHeight
-    }
-
-    /**
-     * Set the focus point of the zoomed image. The focus points are denoted as a fraction from the
-     * left and top of the view. The focus points can range in value between 0 and 1.
-     */
-    fun setScrollPosition(focusX: Float, focusY: Float) {
-        setZoom(currentZoom, focusX, focusY)
     }
 
     /**
@@ -837,22 +772,22 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             return super.onFling(e1, e2, velocityX, velocityY)
         }
 
-        override fun onDoubleTap(e: MotionEvent?): Boolean {
-            var consumed = false
-            if (e != null && isZoomEnabled) {
-                doubleTapListener?.let {
-                    consumed = it.onDoubleTap(e)
-                }
-                if (state == State.NONE) {
-                    val maxZoomScale = if (doubleTapScale == 0f) maxScale else doubleTapScale
-                    val targetZoom = if (currentZoom == minScale) maxZoomScale else minScale
-                    val doubleTap = DoubleTapZoom(targetZoom, e.x, e.y, false)
-                    compatPostOnAnimation(doubleTap)
-                    consumed = true
-                }
-            }
-            return consumed
-        }
+//        override fun onDoubleTap(e: MotionEvent?): Boolean {
+//            var consumed = false
+//            if (e != null && isZoomEnabled) {
+//                doubleTapListener?.let {
+//                    consumed = it.onDoubleTap(e)
+//                }
+//                if (state == State.NONE) {
+//                    val maxZoomScale = if (doubleTapScale == 0f) maxScale else doubleTapScale
+//                    val targetZoom = if (currentZoom == minScale) maxZoomScale else minScale
+//                    val doubleTap = DoubleTapZoom(targetZoom, e.x, e.y, false)
+//                    compatPostOnAnimation(doubleTap)
+//                    consumed = true
+//                }
+//            }
+//            return consumed
+//        }
 
         override fun onDoubleTapEvent(e: MotionEvent?): Boolean {
             return doubleTapListener?.onDoubleTapEvent(e) ?: false
@@ -956,10 +891,10 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
                 targetZoom = minScale
                 animateToZoomBoundary = true
             }
-            if (animateToZoomBoundary) {
-                val doubleTap = DoubleTapZoom(targetZoom, (viewWidth / 2).toFloat(), (viewHeight / 2).toFloat(), true)
-                compatPostOnAnimation(doubleTap)
-            }
+//            if (animateToZoomBoundary) {
+//                val doubleTap = DoubleTapZoom(targetZoom, (viewWidth / 2).toFloat(), (viewHeight / 2).toFloat(), true)
+//                compatPostOnAnimation(doubleTap)
+//            }
         }
     }
 
@@ -987,91 +922,91 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         fixScaleTrans()
     }
 
-    /**
-     * DoubleTapZoom calls a series of runnables which apply
-     * an animated zoom in/out graphic to the image.
-     */
-    private inner class DoubleTapZoom internal constructor(targetZoom: Float, focusX: Float, focusY: Float, stretchImageToSuper: Boolean) : Runnable {
-        private val startTime: Long
-        private val startZoom: Float
-        private val targetZoom: Float
-        private val bitmapX: Float
-        private val bitmapY: Float
-        private val stretchImageToSuper: Boolean
-        private val interpolator = AccelerateDecelerateInterpolator()
-        private val startTouch: PointF
-        private val endTouch: PointF
-        override fun run() {
-            if (drawable == null) {
-                setState(State.NONE)
-                return
-            }
-            val t = interpolate()
-            val deltaScale = calculateDeltaScale(t)
-            scaleImage(deltaScale, bitmapX, bitmapY, stretchImageToSuper)
-            translateImageToCenterTouchPosition(t)
-            fixScaleTrans()
-            imageMatrix = touchMatrix
-
-            // double tap runnable updates listener with every frame.
-            if (touchImageViewListener != null) {
-                touchImageViewListener!!.onMove()
-            }
-            if (t < 1f) {
-                // We haven't finished zooming
-                compatPostOnAnimation(this)
-            } else {
-                // Finished zooming
-                setState(State.NONE)
-            }
-        }
-
-        /**
-         * Interpolate between where the image should start and end in order to translate
-         * the image so that the point that is touched is what ends up centered at the end
-         * of the zoom.
-         */
-        private fun translateImageToCenterTouchPosition(t: Float) {
-            val targetX = startTouch.x + t * (endTouch.x - startTouch.x)
-            val targetY = startTouch.y + t * (endTouch.y - startTouch.y)
-            val curr = transformCoordBitmapToTouch(bitmapX, bitmapY)
-            touchMatrix!!.postTranslate(targetX - curr.x, targetY - curr.y)
-        }
-
-        /**
-         * Use interpolator to get t
-         */
-        private fun interpolate(): Float {
-            val currTime = System.currentTimeMillis()
-            var elapsed = (currTime - startTime) / DEFAULT_ZOOM_TIME.toFloat()
-            elapsed = Math.min(1f, elapsed)
-            return interpolator.getInterpolation(elapsed)
-        }
-
-        /**
-         * Interpolate the current targeted zoom and get the delta
-         * from the current zoom.
-         */
-        private fun calculateDeltaScale(t: Float): Double {
-            val zoom = startZoom + t * (targetZoom - startZoom).toDouble()
-            return zoom / currentZoom
-        }
-
-        init {
-            setState(State.ANIMATE_ZOOM)
-            startTime = System.currentTimeMillis()
-            startZoom = currentZoom
-            this.targetZoom = targetZoom
-            this.stretchImageToSuper = stretchImageToSuper
-            val bitmapPoint = transformCoordTouchToBitmap(focusX, focusY, false)
-            bitmapX = bitmapPoint.x
-            bitmapY = bitmapPoint.y
-
-            // Used for translating image during scaling
-            startTouch = transformCoordBitmapToTouch(bitmapX, bitmapY)
-            endTouch = PointF((viewWidth / 2).toFloat(), (viewHeight / 2).toFloat())
-        }
-    }
+//    /**
+//     * DoubleTapZoom calls a series of runnables which apply
+//     * an animated zoom in/out graphic to the image.
+//     */
+//    private inner class DoubleTapZoom internal constructor(targetZoom: Float, focusX: Float, focusY: Float, stretchImageToSuper: Boolean) : Runnable {
+//        private val startTime: Long
+//        private val startZoom: Float
+//        private val targetZoom: Float
+//        private val bitmapX: Float
+//        private val bitmapY: Float
+//        private val stretchImageToSuper: Boolean
+//        private val interpolator = AccelerateDecelerateInterpolator()
+//        private val startTouch: PointF
+//        private val endTouch: PointF
+//        override fun run() {
+//            if (drawable == null) {
+//                setState(State.NONE)
+//                return
+//            }
+//            val t = interpolate()
+//            val deltaScale = calculateDeltaScale(t)
+//            scaleImage(deltaScale, bitmapX, bitmapY, stretchImageToSuper)
+//            translateImageToCenterTouchPosition(t)
+//            fixScaleTrans()
+//            imageMatrix = touchMatrix
+//
+//            // double tap runnable updates listener with every frame.
+//            if (touchImageViewListener != null) {
+//                touchImageViewListener!!.onMove()
+//            }
+//            if (t < 1f) {
+//                // We haven't finished zooming
+//                compatPostOnAnimation(this)
+//            } else {
+//                // Finished zooming
+//                setState(State.NONE)
+//            }
+//        }
+//
+//        /**
+//         * Interpolate between where the image should start and end in order to translate
+//         * the image so that the point that is touched is what ends up centered at the end
+//         * of the zoom.
+//         */
+//        private fun translateImageToCenterTouchPosition(t: Float) {
+//            val targetX = startTouch.x + t * (endTouch.x - startTouch.x)
+//            val targetY = startTouch.y + t * (endTouch.y - startTouch.y)
+//            val curr = transformCoordBitmapToTouch(bitmapX, bitmapY)
+//            touchMatrix!!.postTranslate(targetX - curr.x, targetY - curr.y)
+//        }
+//
+//        /**
+//         * Use interpolator to get t
+//         */
+//        private fun interpolate(): Float {
+//            val currTime = System.currentTimeMillis()
+//            var elapsed = (currTime - startTime) / DEFAULT_ZOOM_TIME.toFloat()
+//            elapsed = Math.min(1f, elapsed)
+//            return interpolator.getInterpolation(elapsed)
+//        }
+//
+//        /**
+//         * Interpolate the current targeted zoom and get the delta
+//         * from the current zoom.
+//         */
+//        private fun calculateDeltaScale(t: Float): Double {
+//            val zoom = startZoom + t * (targetZoom - startZoom).toDouble()
+//            return zoom / currentZoom
+//        }
+//
+//        init {
+//            setState(State.ANIMATE_ZOOM)
+//            startTime = System.currentTimeMillis()
+//            startZoom = currentZoom
+//            this.targetZoom = targetZoom
+//            this.stretchImageToSuper = stretchImageToSuper
+//            val bitmapPoint = transformCoordTouchToBitmap(focusX, focusY, false)
+//            bitmapX = bitmapPoint.x
+//            bitmapY = bitmapPoint.y
+//
+//            // Used for translating image during scaling
+//            startTouch = transformCoordBitmapToTouch(bitmapX, bitmapY)
+//            endTouch = PointF((viewWidth / 2).toFloat(), (viewHeight / 2).toFloat())
+//        }
+//    }
 
     /**
      * This function will transform the coordinates in the touch event to the coordinate
