@@ -1,25 +1,22 @@
 package com.example.android.pdfrendererbasic
 
-import android.annotation.TargetApi
 import android.content.Context
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.Drawable
 import android.net.Uri
-import android.os.Build
-import android.os.Bundle
-import android.os.Parcelable
 import android.util.AttributeSet
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.view.animation.LinearInterpolator
 import android.widget.OverScroller
 import androidx.appcompat.widget.AppCompatImageView
 
-class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSet? = null, defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
+class PdfImageView@JvmOverloads constructor(
+    context: Context,
+    attrs: AttributeSet? = null,
+    defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
 
     var currentZoom = 0f
         private set
@@ -68,7 +65,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
     private var prevMatchViewHeight = 0f
     private var mScaleDetector: ScaleGestureDetector? = null
     private var mGestureDetector: GestureDetector? = null
-    private var doubleTapListener: GestureDetector.OnDoubleTapListener? = null
     private var userTouchListener: OnTouchListener? = null
     private var touchImageViewListener: OnTouchImageViewListener? = null
 
@@ -164,46 +160,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         }
     }
 
-    public override fun onSaveInstanceState(): Parcelable? {
-        val bundle = Bundle()
-        bundle.putParcelable("instanceState", super.onSaveInstanceState())
-        bundle.putInt("orientation", orientation)
-        bundle.putFloat("saveScale", currentZoom)
-        bundle.putFloat("matchViewHeight", matchViewHeight)
-        bundle.putFloat("matchViewWidth", matchViewWidth)
-        bundle.putInt("viewWidth", viewWidth)
-        bundle.putInt("viewHeight", viewHeight)
-        touchMatrix!!.getValues(floatMatrix)
-        bundle.putFloatArray("matrix", floatMatrix)
-        bundle.putBoolean("imageRendered", imageRenderedAtLeastOnce)
-        bundle.putSerializable("viewSizeChangeFixedPixel", viewSizeChangeFixedPixel)
-        bundle.putSerializable("orientationChangeFixedPixel", orientationChangeFixedPixel)
-        return bundle
-    }
-
-    public override fun onRestoreInstanceState(state: Parcelable) {
-        if (state is Bundle) {
-            val bundle = state
-            currentZoom = bundle.getFloat("saveScale")
-            floatMatrix = bundle.getFloatArray("matrix")
-            prevMatrix!!.setValues(floatMatrix)
-            prevMatchViewHeight = bundle.getFloat("matchViewHeight")
-            prevMatchViewWidth = bundle.getFloat("matchViewWidth")
-            prevViewHeight = bundle.getInt("viewHeight")
-            prevViewWidth = bundle.getInt("viewWidth")
-            imageRenderedAtLeastOnce = bundle.getBoolean("imageRendered")
-            viewSizeChangeFixedPixel = bundle.getSerializable("viewSizeChangeFixedPixel") as FixedPixel?
-            orientationChangeFixedPixel = bundle.getSerializable("orientationChangeFixedPixel") as FixedPixel?
-            val oldOrientation = bundle.getInt("orientation")
-            if (orientation != oldOrientation) {
-                orientationJustChanged = true
-            }
-            super.onRestoreInstanceState(bundle.getParcelable("instanceState"))
-            return
-        }
-        super.onRestoreInstanceState(state)
-    }
-
     override fun onDraw(canvas: Canvas) {
         onDrawReady = true
         imageRenderedAtLeastOnce = true
@@ -282,7 +238,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
         imageMatrix = touchMatrix
     }
 
-    //TODO - maintain scale type
     fun setZoom(img: PdfImageView) {
         val center = img.scrollPosition
         setZoom(img.currentZoom, center.x, center.y, img.scaleType)
@@ -618,7 +573,6 @@ class PdfImageView@JvmOverloads constructor(context: Context, attrs: AttributeSe
             setState(State.ZOOM)
             return true
         }
-
         override fun onScale(detector: ScaleGestureDetector): Boolean {
             scaleImage(detector.scaleFactor.toDouble(), detector.focusX, detector.focusY, true)
 
