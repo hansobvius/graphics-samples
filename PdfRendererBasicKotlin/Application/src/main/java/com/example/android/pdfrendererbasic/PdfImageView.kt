@@ -61,11 +61,14 @@ class PdfImageView@JvmOverloads constructor(
         imageMatrix = mMatrix
         scaleType = ScaleType.MATRIX
         onDrawReady = false
-        val attributes = context.theme.obtainStyledAttributes(attrs, R.styleable.TouchImageView, defStyle, 0)
         try {
-            if (!isInEditMode) zoomToggle = attributes.getBoolean(R.styleable.TouchImageView_zoom_enabled, true)
+            if (!isInEditMode) zoomToggle =
+                context.theme.obtainStyledAttributes(
+                    attrs,
+                    R.styleable.TouchImageView,
+                    defStyle, 0).getBoolean(R.styleable.TouchImageView_zoom_enabled, true)
         } finally {
-            attributes.recycle()
+            context.theme.obtainStyledAttributes(attrs, R.styleable.TouchImageView, defStyle, 0).recycle()
         }
         flingGestureType(TypeGesture.NONE)
         super.setOnTouchListener(OnTouchViewListener())
@@ -77,25 +80,25 @@ class PdfImageView@JvmOverloads constructor(
 
     override fun setImageResource(resId: Int) {
         super.setImageResource(resId)
-        savePreviousImageValues()
+        setImageViewState()
         formatImage()
     }
 
     override fun setImageBitmap(bm: Bitmap) {
         super.setImageBitmap(bm)
-        savePreviousImageValues()
+        setImageViewState()
         formatImage()
     }
 
     override fun setImageDrawable(drawable: Drawable?) {
         super.setImageDrawable(drawable)
-        savePreviousImageValues()
+        setImageViewState()
         formatImage()
     }
 
     override fun setImageURI(uri: Uri?) {
         super.setImageURI(uri)
-        savePreviousImageValues()
+        setImageViewState()
         formatImage()
     }
 
@@ -124,7 +127,7 @@ class PdfImageView@JvmOverloads constructor(
         val heightMode = MeasureSpec.getMode(heightMeasureSpec)
         val totalViewWidth = setViewSize(widthMode, widthSize, drawableWidth)
         val totalViewHeight = setViewSize(heightMode, heightSize, drawableHeight)
-        savePreviousImageValues()
+        setImageViewState()
 
         val width = totalViewWidth - paddingLeft - paddingRight
         val height = totalViewHeight - paddingTop - paddingBottom
@@ -166,7 +169,7 @@ class PdfImageView@JvmOverloads constructor(
         super.onDraw(canvas)
     }
 
-    private fun savePreviousImageValues() {
+    private fun setImageViewState() {
         if (mMatrix != null && viewHeight != 0 && viewWidth != 0) {
             mMatrix!!.getValues(floatMatrix)
             matrixState!!.setValues(floatMatrix)
@@ -235,7 +238,7 @@ class PdfImageView@JvmOverloads constructor(
         floatMatrix!![Matrix.MTRANS_X] = -(focusX * imageWidth - viewWidth * 0.5f)
         floatMatrix!![Matrix.MTRANS_Y] = -(focusY * imageHeight - viewHeight * 0.5f)
         mMatrix!!.setValues(floatMatrix)
-        savePreviousImageValues()
+        setImageViewState()
         imageMatrix = mMatrix
     }
 
@@ -362,7 +365,7 @@ class PdfImageView@JvmOverloads constructor(
             zoom = 1f
         } else {
             if (prevMatchViewWidth == 0f || prevMatchViewHeight == 0f) {
-                savePreviousImageValues()
+                setImageViewState()
             }
 
             matrixState!!.getValues(floatMatrix)
