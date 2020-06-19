@@ -16,27 +16,14 @@
 
 package com.example.android.pdfrendererbasic
 
-import android.animation.ObjectAnimator
-import android.app.Dialog
 import android.graphics.Bitmap
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
-import android.util.Log
 import android.view.*
-import android.view.animation.AccelerateDecelerateInterpolator
-import android.widget.Button
-import android.widget.ImageView
 import androidx.appcompat.app.AlertDialog
-import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.Fragment
-import androidx.fragment.app.viewModels
-import androidx.lifecycle.Observer
-import androidx.viewpager.widget.PagerAdapter
-import androidx.viewpager.widget.ViewPager
-import com.example.android.pdfrendererbasic.MainActivity.Companion.FRAGMENT_INFO
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
-import kotlinx.android.synthetic.main.pdf_renderer_basic_fragment.view.*
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.asCoroutineDispatcher
@@ -53,7 +40,6 @@ class PdfRendererBasicFragment : Fragment() {
     private lateinit var file: File
     private val useInstantExecutor = true
     private val job = Job()
-    private var isExpandable = true
     private val executor = if (useInstantExecutor) {
         Executor { it.run() }
     } else {
@@ -77,8 +63,6 @@ class PdfRendererBasicFragment : Fragment() {
         this.apply {
             this.initPagerView()
         }
-        this.initCLickListener()
-        this.toolbarAnimation()
     }
 
     private fun buildToolbar(){
@@ -109,22 +93,6 @@ class PdfRendererBasicFragment : Fragment() {
                     else -> false
                 }
             }
-        }
-    }
-
-    private fun initCLickListener(){
-        binding.root.setOnClickListener {
-            Log.i("TEST", "listener clicked")
-            isExpandable = !isExpandable
-        }
-    }
-
-    private fun toolbarAnimation(){
-        val toolbarAnimation = getObjectAnimator()
-        toolbarAnimation.apply {
-            interpolator = AccelerateDecelerateInterpolator()
-            duration = 1000
-            expandLayout()
         }
     }
 
@@ -168,30 +136,6 @@ class PdfRendererBasicFragment : Fragment() {
         page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
         page.close()
         return bitmap
-    }
-
-    /**
-     * EXPAND TOOLBAR
-     */
-    private fun getObjectAnimator(): ObjectAnimator =
-        if(isExpandable){
-            ObjectAnimator.ofFloat(
-                binding.root.main_toolbar,
-                View.TRANSLATION_Y,
-                0f,
-                - binding.root.height.toFloat()
-            )
-        }else{
-            ObjectAnimator.ofFloat(
-                binding.root.main_toolbar,
-                View.TRANSLATION_Y,
-                - binding.root.height.toFloat(),
-                0f
-            )
-        }
-
-    private fun ObjectAnimator.expandLayout(){
-        start()
     }
 
     companion object {
