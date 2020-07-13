@@ -12,7 +12,7 @@ import android.view.View
 import android.widget.OverScroller
 import androidx.appcompat.widget.AppCompatImageView
 
-class PdfImageView@JvmOverloads constructor(
+class PdfImageView @JvmOverloads constructor(
     context: Context,
     attrs: AttributeSet? = null,
     defStyle: Int = 0) : AppCompatImageView(context, attrs, defStyle) {
