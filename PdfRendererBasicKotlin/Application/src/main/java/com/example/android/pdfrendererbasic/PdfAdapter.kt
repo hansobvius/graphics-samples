@@ -1,17 +1,12 @@
 package com.example.android.pdfrendererbasic
 
-import android.content.Context
 import android.graphics.Bitmap
-import android.view.LayoutInflater
 import android.view.MotionEvent
-import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
-import androidx.core.view.ViewCompat.canScrollHorizontally
 import androidx.recyclerview.widget.RecyclerView
-import kotlinx.android.synthetic.main.content_adapter.view.*
 
-class PdfRecyclerView(private val bitmapList: List<Bitmap>): RecyclerView.Adapter<PdfRecyclerView.PdfViewHolder>() {
+class PdfAdapter(private val bitmapList: List<Bitmap>): RecyclerView.Adapter<PdfAdapter.PdfViewHolder>() {
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PdfViewHolder =
         PdfViewHolder(PdfImageView(parent.context).apply {
@@ -49,9 +44,13 @@ class PdfRecyclerView(private val bitmapList: List<Bitmap>): RecyclerView.Adapte
         fun makeToast(position: Int){
             Toast.makeText(
                 itemView.context,
-                "${position + 1} de ${bitmapList.size}",
+                "${getPagePosition(position)} de ${bitmapList.size}",
                 Toast.LENGTH_SHORT
             ).show()
         }
     }
+
+    private fun getPagePosition(pos: Int) =
+        if(pos == 0) (pos + 1)
+        else pos
 }

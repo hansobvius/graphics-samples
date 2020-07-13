@@ -34,7 +34,7 @@ import java.util.concurrent.Executors
 class PdfRendererBasicFragment : Fragment() {
 
     lateinit var binding: PdfRendererBasicFragmentBinding
-    private lateinit var pdfRecyclerView: PdfRecyclerView
+    private lateinit var pdfAdapter: PdfAdapter
     private lateinit var pdfRenderer: PdfRenderer
     private lateinit var parcelFileDescriptor: ParcelFileDescriptor
     private lateinit var file: File
@@ -118,9 +118,9 @@ class PdfRendererBasicFragment : Fragment() {
 
     private fun renderContent(){
         loadPdf().also {
-            pdfRecyclerView = PdfRecyclerView(renderPdf(pdfRenderer.pageCount))
+            pdfAdapter = PdfAdapter(renderPdf(pdfRenderer.pageCount))
             binding.viewPager.apply{
-                adapter = pdfRecyclerView
+                adapter = pdfAdapter
             }
         }
     }
