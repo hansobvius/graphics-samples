@@ -1,5 +1,6 @@
 package com.example.android.pdfrendererbasic
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
 import android.view.MotionEvent
 import android.view.ViewGroup
@@ -8,6 +9,7 @@ import androidx.recyclerview.widget.RecyclerView
 
 class PdfAdapter(private val bitmapList: List<Bitmap>): RecyclerView.Adapter<PdfAdapter.PdfViewHolder>() {
 
+    @SuppressLint("ClickableViewAccessibility")
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): PdfViewHolder =
         PdfViewHolder(PdfImageView(parent.context).apply {
             layoutParams = ViewGroup.LayoutParams(

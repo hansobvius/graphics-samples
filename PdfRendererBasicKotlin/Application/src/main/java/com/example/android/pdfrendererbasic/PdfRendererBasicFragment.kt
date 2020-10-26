@@ -1,22 +1,8 @@
-/*
- * Copyright (C) 2017 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.android.pdfrendererbasic
 
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.Bundle
 import android.os.ParcelFileDescriptor
@@ -33,19 +19,11 @@ import java.util.concurrent.Executors
 
 class PdfRendererBasicFragment : Fragment() {
 
-    lateinit var binding: PdfRendererBasicFragmentBinding
+    private lateinit var binding: PdfRendererBasicFragmentBinding
     private lateinit var pdfAdapter: PdfAdapter
     private lateinit var pdfRenderer: PdfRenderer
     private lateinit var parcelFileDescriptor: ParcelFileDescriptor
     private lateinit var file: File
-    private val useInstantExecutor = true
-    private val job = Job()
-    private val executor = if (useInstantExecutor) {
-        Executor { it.run() }
-    } else {
-        Executors.newSingleThreadExecutor()
-    }
-    private val scope = CoroutineScope(executor.asCoroutineDispatcher() + job)
 
     override fun onCreateView(
         inflater: LayoutInflater,
@@ -72,14 +50,14 @@ class PdfRendererBasicFragment : Fragment() {
                 this@PdfRendererBasicFragment
                     .requireActivity()
                     .resources
-                    .getColor(R.color.toolbar_color)
+                    .getColor(R.color.toolbar_color, null)
             )
             title = "Pdf Renderer"
             setTitleTextColor(
                 this@PdfRendererBasicFragment
                     .requireActivity()
                     .resources
-                    .getColor(R.color.toolbar_text_color)
+                    .getColor(R.color.toolbar_text_color, null)
             )
             setOnMenuItemClickListener {
                 when(it.itemId){
@@ -132,10 +110,21 @@ class PdfRendererBasicFragment : Fragment() {
     }
 
     private fun renderPage(page: PdfRenderer.Page): Bitmap {
-        val bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-        page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
-        page.close()
-        return bitmap
+        var bitmap: Bitmap? = null
+        try{
+            bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+        }catch(e: OutOfMemoryError){
+            e.stackTrace
+        }finally {
+            val canvas = Canvas(bitmap!!)
+            canvas.apply{
+                this.drawColor(Color.WHITE)
+                this.drawBitmap(bitmap, 0F, 0F, null)
+            }
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            page.close()
+            return bitmap
+        }
     }
 
     companion object {
