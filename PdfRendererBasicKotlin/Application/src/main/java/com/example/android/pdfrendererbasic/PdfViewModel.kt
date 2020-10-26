@@ -12,7 +12,7 @@ import kotlinx.coroutines.*
 import java.io.File
 import java.io.IOException
 
-class PdfRendererBasicViewModel : ViewModel() {
+class PdfViewModel : ViewModel() {
 
     private lateinit var parcelFileDescriptor: ParcelFileDescriptor
 

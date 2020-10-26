@@ -12,11 +12,11 @@ import java.io.File
 class PdfRendererBasicFragment : Fragment() {
 
     private lateinit var binding: PdfRendererBasicFragmentBinding
-    private lateinit var viewModel: PdfRendererBasicViewModel
+    private lateinit var viewModel: PdfViewModel
     private lateinit var pdfAdapter: PdfAdapter
 
     override fun onCreateView(inflater: LayoutInflater, container: ViewGroup?, savedInstanceState: Bundle?): View? {
-        viewModel = ViewModelProvider(requireActivity()).get(PdfRendererBasicViewModel::class.java).also {
+        viewModel = ViewModelProvider(requireActivity()).get(PdfViewModel::class.java).also {
             it.loadPdf(getFile())
         }
         binding = PdfRendererBasicFragmentBinding.inflate(inflater).also {
