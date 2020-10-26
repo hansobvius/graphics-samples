@@ -1,83 +1,67 @@
-/*
- * Copyright (C) 2019 The Android Open Source Project
- *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
- *
- *      http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
- */
-
 package com.example.android.pdfrendererbasic
 
-import android.app.Application
-import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.graphics.Color
 import android.graphics.pdf.PdfRenderer
 import android.os.ParcelFileDescriptor
-import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
+import androidx.lifecycle.ViewModel
 import kotlinx.coroutines.*
 import java.io.File
-import java.util.concurrent.Executor
-import java.util.concurrent.Executors
+import java.io.IOException
 
-class PdfRendererBasicViewModel constructor(application: Application) : AndroidViewModel(application) {
+class PdfRendererBasicViewModel : ViewModel() {
 
-    private val job = Job()
+    private lateinit var parcelFileDescriptor: ParcelFileDescriptor
 
-    private val scope = CoroutineScope(Dispatchers.IO + Job())
+    private val _bitmapList = MutableLiveData<List<Bitmap>>()
+    val bitmapList: LiveData<List<Bitmap>> get() = _bitmapList
 
-    private var fileDescriptor: ParcelFileDescriptor? = null
-    private var pdfRenderer: PdfRenderer? = null
-    private var currentPage: PdfRenderer.Page? = null
-    private var cleared = false
+    fun loadPdf(file: File){
+        CoroutineScope(SupervisorJob() + Dispatchers.IO).launch{
+            val parcel = async(start = CoroutineStart.LAZY){ getParcelFile(file) }
+            parcel.start()
+            parcelFileDescriptor = parcel.await()
+            withContext(Dispatchers.Main){ setParcelFileToRender(parcelFileDescriptor) }
+        }
+    }
 
-    init {
-        scope.launch {
-            openPdfRenderer()
-            if (cleared) {
-                closePdfRenderer()
+    private fun getParcelFile(file: File): ParcelFileDescriptor =
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)
+
+    private fun setParcelFileToRender(fileDescriptor: ParcelFileDescriptor){
+        try{
+            val pdfRenderer = PdfRenderer(fileDescriptor)
+            val listOfBitmap = renderPdf(pdfRenderer)
+            _bitmapList.value = listOfBitmap
+        }catch(e: IOException){
+            e.stackTrace
+        }
+    }
+
+    private fun renderPdf(pdfRenderer: PdfRenderer): List<Bitmap> {
+        val list = ArrayList<Bitmap>()
+        for (i in 0 until pdfRenderer.pageCount) list.add(renderPage(pdfRenderer.openPage(i)))
+        return list
+    }
+
+    private fun renderPage(page: PdfRenderer.Page): Bitmap {
+        var bitmap: Bitmap? = null
+        try{
+            bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
+        }catch(e: OutOfMemoryError){
+            e.stackTrace
+        }finally {
+            val canvas = Canvas(bitmap!!)
+            canvas.apply{
+                this.drawColor(Color.WHITE)
+                this.drawBitmap(bitmap, 0F, 0F, null)
             }
+            page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+            page.close()
+            return bitmap
         }
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        scope.launch {
-            closePdfRenderer()
-            cleared = true
-            job.cancel()
-        }
-    }
-
-    private fun openPdfRenderer() {
-        val application = getApplication<Application>()
-        val file = File(application.cacheDir, FILENAME)
-        if (!file.exists()) {
-            application.assets.open(FILENAME).use { asset ->
-                file.writeBytes(asset.readBytes())
-            }
-        }
-        fileDescriptor = ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).also {
-            pdfRenderer = PdfRenderer(it)
-        }
-    }
-
-    private fun closePdfRenderer() {
-        currentPage?.close()
-        pdfRenderer?.close()
-        fileDescriptor?.close()
-    }
-
-    companion object {
-        const val FILENAME = "sample.pdf"
     }
 }
