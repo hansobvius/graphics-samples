@@ -9,7 +9,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
 import java.io.File
 
-class PdfRendererBasicFragment : Fragment() {
+class PdfRendererFragment : Fragment() {
 
     private lateinit var binding: PdfRendererBasicFragmentBinding
     private lateinit var viewModel: PdfViewModel
@@ -20,7 +20,7 @@ class PdfRendererBasicFragment : Fragment() {
             it.loadPdf(getFile())
         }
         binding = PdfRendererBasicFragmentBinding.inflate(inflater).also {
-            it.lifecycleOwner = this@PdfRendererBasicFragment
+            it.lifecycleOwner = this@PdfRendererFragment
         }
         this.buildToolbar()
         return binding.root
@@ -28,7 +28,7 @@ class PdfRendererBasicFragment : Fragment() {
 
     override fun onResume() {
         super.onResume()
-        this@PdfRendererBasicFragment.apply {
+        this@PdfRendererFragment.apply {
             this.renderContent()
         }
     }
@@ -37,14 +37,14 @@ class PdfRendererBasicFragment : Fragment() {
         binding.mainToolbar.apply{
             this.inflateMenu(R.menu.main)
             setBackgroundColor(
-                this@PdfRendererBasicFragment
+                this@PdfRendererFragment
                     .requireActivity()
                     .resources
                     .getColor(R.color.toolbar_color, null)
             )
             title = "Pdf Renderer"
             setTitleTextColor(
-                this@PdfRendererBasicFragment
+                this@PdfRendererFragment
                     .requireActivity()
                     .resources
                     .getColor(R.color.toolbar_text_color, null)
