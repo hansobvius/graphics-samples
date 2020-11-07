@@ -1,13 +1,10 @@
-package com.example.android.pdfrendererbasic
+package com.example.android.pdfrendererbasic.presentation.home.activity
 
-import android.app.Dialog
 import android.os.Bundle
-import android.view.Menu
-import android.view.MenuItem
-import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
-import androidx.fragment.app.DialogFragment
 import androidx.fragment.app.commitNow
+import com.example.android.pdfrendererbasic.R
+import com.example.android.pdfrendererbasic.presentation.home.fragment.PdfRendererFragment
 
 class MainActivity : AppCompatActivity(R.layout.main_activity) {
 
@@ -15,7 +12,7 @@ class MainActivity : AppCompatActivity(R.layout.main_activity) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState == null) {
             supportFragmentManager.commitNow {
-                replace(R.id.container, PdfRendererBasicFragment())
+                replace(R.id.container, PdfRendererFragment())
             }
         }
     }

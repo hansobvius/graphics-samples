@@ -1,4 +1,4 @@
-package com.example.android.pdfrendererbasic
+package com.example.android.pdfrendererbasic.presentation.home.viewmodel
 
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -19,6 +19,9 @@ class PdfViewModel : ViewModel() {
     private val _bitmapList = MutableLiveData<List<Bitmap>>()
     val bitmapList: LiveData<List<Bitmap>> get() = _bitmapList
 
+    private val _error = MutableLiveData<Boolean>()
+    val error: LiveData<Boolean> get() = _error
+
     fun loadPdf(file: File){
         CoroutineScope(SupervisorJob() + Dispatchers.IO).launch{
             val parcel = async(start = CoroutineStart.LAZY){ getParcelFile(file) }
@@ -37,6 +40,7 @@ class PdfViewModel : ViewModel() {
             val listOfBitmap = renderPdf(pdfRenderer)
             _bitmapList.value = listOfBitmap
         }catch(e: IOException){
+            _error.value = true
             e.stackTrace
         }
     }
@@ -52,6 +56,7 @@ class PdfViewModel : ViewModel() {
         try{
             bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
         }catch(e: OutOfMemoryError){
+            _error.value = true
             e.stackTrace
         }finally {
             val canvas = Canvas(bitmap!!)

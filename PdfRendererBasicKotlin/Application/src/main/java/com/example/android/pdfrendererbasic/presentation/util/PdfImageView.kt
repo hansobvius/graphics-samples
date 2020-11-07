@@ -1,4 +1,4 @@
-package com.example.android.pdfrendererbasic
+package com.example.android.pdfrendererbasic.presentation.util
 
 import android.content.Context
 import android.graphics.*
@@ -11,6 +11,7 @@ import android.view.ScaleGestureDetector
 import android.view.View
 import android.widget.OverScroller
 import androidx.appcompat.widget.AppCompatImageView
+import com.example.android.pdfrendererbasic.R
 
 class PdfImageView @JvmOverloads constructor(
     context: Context,
@@ -435,7 +436,9 @@ class PdfImageView @JvmOverloads constructor(
                         mMatrix!!.postTranslate(fixTransX, fixTransY)
                         last[curr.x] = curr.y
                     }
-                    MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> flingGestureType(TypeGesture.NONE)
+                    MotionEvent.ACTION_UP, MotionEvent.ACTION_POINTER_UP -> flingGestureType(
+                        TypeGesture.NONE
+                    )
                 }
             }
             imageMatrix = mMatrix

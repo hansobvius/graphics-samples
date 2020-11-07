@@ -1,4 +1,4 @@
-package com.example.android.pdfrendererbasic
+package com.example.android.pdfrendererbasic.presentation.home.fragment
 
 import android.os.Bundle
 import android.view.*
@@ -6,7 +6,11 @@ import androidx.appcompat.app.AlertDialog
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import com.example.android.pdfrendererbasic.presentation.home.adapter.PdfAdapter
+import com.example.android.pdfrendererbasic.presentation.home.viewmodel.PdfViewModel
+import com.example.android.pdfrendererbasic.R
 import com.example.android.pdfrendererbasic.databinding.PdfRendererBasicFragmentBinding
+import com.example.android.pdfrendererbasic.presentation.util.DialogHelper
 import java.io.File
 
 class PdfRendererFragment : Fragment() {
@@ -75,12 +79,19 @@ class PdfRendererFragment : Fragment() {
     }
 
     private fun renderContent(){
-        viewModel.bitmapList.observe(this, Observer {
-            it?.let{
-                pdfAdapter = PdfAdapter(it)
-                binding.viewPager.adapter = pdfAdapter
-            }
-        })
+        viewModel.apply{
+            bitmapList.observe(this@PdfRendererFragment, Observer {
+                it?.let{
+                    pdfAdapter = PdfAdapter(it)
+                    binding.viewPager.adapter = pdfAdapter
+                }
+            })
+            error.observe(this@PdfRendererFragment, Observer {
+                it?.let{
+                    if(it) DialogHelper.showAlert(this@PdfRendererFragment.requireContext())
+                }
+            })
+        }
     }
 
     companion object {

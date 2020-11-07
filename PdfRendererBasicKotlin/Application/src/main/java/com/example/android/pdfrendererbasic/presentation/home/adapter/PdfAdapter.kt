@@ -1,4 +1,4 @@
-package com.example.android.pdfrendererbasic
+package com.example.android.pdfrendererbasic.presentation.home.adapter
 
 import android.annotation.SuppressLint
 import android.graphics.Bitmap
@@ -6,6 +6,7 @@ import android.view.MotionEvent
 import android.view.ViewGroup
 import android.widget.Toast
 import androidx.recyclerview.widget.RecyclerView
+import com.example.android.pdfrendererbasic.presentation.util.PdfImageView
 
 class PdfAdapter(private val bitmapList: List<Bitmap>): RecyclerView.Adapter<PdfAdapter.PdfViewHolder>() {
 
