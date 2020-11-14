@@ -47,24 +47,29 @@ class PdfViewModel : ViewModel() {
 
     private fun renderPdf(pdfRenderer: PdfRenderer): List<Bitmap> {
         val list = ArrayList<Bitmap>()
-        for (i in 0 until pdfRenderer.pageCount) list.add(renderPage(pdfRenderer.openPage(i)))
+        for (i in 0 until pdfRenderer.pageCount) {
+            val render = renderPage(pdfRenderer.openPage(i))
+            render?.let{
+                list.add(it)
+            }
+        }
         return list
     }
 
-    private fun renderPage(page: PdfRenderer.Page): Bitmap {
+    private fun renderPage(page: PdfRenderer.Page): Bitmap? {
         var bitmap: Bitmap? = null
         try{
             bitmap = Bitmap.createBitmap(page.width, page.height, Bitmap.Config.ARGB_8888)
-        }catch(e: OutOfMemoryError){
-            _error.value = true
-            e.stackTrace
-        }finally {
             val canvas = Canvas(bitmap!!)
             canvas.apply{
                 this.drawColor(Color.WHITE)
                 this.drawBitmap(bitmap, 0F, 0F, null)
             }
             page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+        }catch(e: OutOfMemoryError){
+            _error.value = true
+            e.stackTrace
+        }finally {
             page.close()
             return bitmap
         }
